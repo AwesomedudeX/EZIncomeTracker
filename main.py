@@ -1,12 +1,3 @@
-# To Do:
-#
-#   - Create base program (information gathering and storage)
-#
-#
-#
-#
-#
-
 import streamlit as st
 
 # Webpage Settings
@@ -22,38 +13,16 @@ requiredlibraries = [
 totaltitles = ["Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
 
 # Importing libraries/modules
-try:
+import os
+import time
 
-    import os
-    import time
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sn
 
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sn
+from sklearn.linear_model import LinearRegression as lreg
 
-    from sklearn.linear_model import LinearRegression as lreg
-
-except:
-
-    for lib in requiredlibraries:
-        os.system(f"pip install {lib}")
-
-    try:
-
-        import os
-        import time
-
-        import numpy as np
-        import pandas as pd
-        import matplotlib.pyplot as plt
-        import seaborn as sn
-
-        from sklearn.linear_model import LinearRegression as lreg
-
-    except:
-        time.sleep(2)
-        exit(0)
 
 # Session state variable initialization
 if ["revenue", "expenses", "tax", "totalrevenue", "totalexpenses", "totaltax", "netincome", "totalvals", "userdata"] not in st.session_state:
