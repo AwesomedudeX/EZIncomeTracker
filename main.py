@@ -13,19 +13,38 @@ requiredlibraries = [
 totaltitles = ["Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
 
 # Importing libraries/modules
-import os
-import time
+try:
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sn
+    import os
+    import time
 
-from sklearn.linear_model import LinearRegression as lreg
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sn
 
+    from sklearn.linear_model import LinearRegression as lreg
+
+except:
+    pass
 
 # Session state variable initialization
 if ["revenue", "expenses", "tax", "totalrevenue", "totalexpenses", "totaltax", "netincome", "totalvals", "userdata"] not in st.session_state:
+
+    os.system("pip install --upgrade")
+
+    for lib in requiredlibraries:
+        os.system(f"pip install {lib}")
+        
+    import os
+    import time
+
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sn
+
+    from sklearn.linear_model import LinearRegression as lreg
 
     # Initializing dictionaries to hold income data
     st.session_state.revenue = {}
