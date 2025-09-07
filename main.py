@@ -1,8 +1,11 @@
+# FIX DATA SAVING
+
 import streamlit as st
 
 # Webpage Settings
-st.set_page_config(page_title="Income Tracker", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="EZ Income Tracker", layout="wide", initial_sidebar_state="expanded", page_icon="💵")
 
+# Initializing constant variables
 requiredlibraries = [
     "numpy",
     "pandas",
@@ -11,79 +14,105 @@ requiredlibraries = [
     "sklearn"
 ]
 totaltitles = ["Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
+pages = ["Home", "Create Entry", "View Entries"]
 
 # Importing libraries/modules
-try:
+import os
+import time
 
-    import os
-    import time
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sn
 
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sn
+from sklearn.linear_model import LinearRegression as lreg
 
-    from sklearn.linear_model import LinearRegression as lreg
+if ["userdata"] not in st.session_state:
 
-except:
-    pass
+    try:
+        st.session_state.userdata = pd.read_csv("data.csv")
 
-# Session state variable initialization
-if ["revenue", "expenses", "tax", "totalrevenue", "totalexpenses", "totaltax", "netincome", "totalvals", "userdata"] not in st.session_state:
-
-    os.system("pip install --upgrade")
-
-    for lib in requiredlibraries:
-        os.system(f"pip install {lib}")
+    except:
         
-    import os
-    import time
+        st.session_state.userdata = pd.DataFrame()
 
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sn
+        for title in totaltitles:
+            st.session_state.userdata[title] = []
 
-    from sklearn.linear_model import LinearRegression as lreg
+def isNum(num: str):
+    
+    try:
+        num = float(num)
+    
+    except:
+        
+        try:
+            num = int(num)
 
-    # Initializing dictionaries to hold income data
-    st.session_state.revenue = {}
-    st.session_state.expenses = {}
-    st.session_state.tax = {}
+        except:
+            return False
+        
+    return True
 
-    # Initializing values to hold income data totals
-    st.session_state.totalrevenue = 0
-    st.session_state.totalexpenses = 0
-    st.session_state.totaltax = 0
-    st.session_state.netincome = 0
-    st.session_state.totalvals = {}
-    st.session_state.totalvalsstr = {}
+def cleanData(df):
+    
+    if "Unnamed: 0" in df.columns:
+        df.drop("Unnamed: 0", axis='columns', inplace=True)
 
-    st.session_state.userdata = pd.DataFrame()
+    return df
+
+def addEntry(df, newvals: dict):
+
+    data = {}
 
     for title in totaltitles:
-        st.session_state.totalvals[title] = []
-        st.session_state.totalvalsstr[title] = []
-        st.session_state.userdata[title] = []
 
-    st.session_state.userdata.to_csv("data.csv")
+        data[title] = []
+
+        for val in df[title]:
+            data[title].append(val)
+
+        data[title].append(newvals[title][0])
+    
+    newdf = pd.DataFrame().from_dict(data)
+    newdf = cleanData(newdf)
+
+    write = str(newdf.to_csv())
+    open("data.csv", "w").write(write)
+
+def saveEntries(df):
+
+    df = cleanData(df)
+
+    write = str(df.to_csv())
+    open("data.csv", "w").write(write)
 
 
-# Defining methods
-def savedata():
-    for title in totaltitles:
-        st.session_state.userdata[title] = list(st.session_state.userdata[title]).append(st.session_state.totalvals[title][0])
-
-
-pages = ["Home", "Create Entry"]
 sidebar = st.sidebar
 
 st.sidebar.title(":green[EZ] Income Tracker")
 
 page = st.sidebar.radio("**Navigation:**", pages)
 
+if sidebar.button("Refresh Page"):
+    sidebar.subheader("Page refreshed successfully!")
+
 if page == "Home":
-    st.title("Income Tracker")
+
+    st.title(":green[EZ] Income Tracker")
+    st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with all of your income tracking needs, with data management, analysis, visualization and prediction features that make budgeting easy. If you have used this app before, upload your `data.csv` file from your last session to the upload box below. If this is your first time, head to `Create Entry` to get started.")
+
+    datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type="csv")
+
+#    if datafile and st.button("Upload File"):
+        
+#        st.write(datafile.getvalue())
+#        df = datafile.getvalue()
+#        st.write(df)
+
+#        open("data.csv", "w").write(readdata)
+#        st.write("Data file uploaded successfully!")
+#        time.sleep(3)
 
 else:
     
@@ -92,6 +121,10 @@ else:
     download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(), file_name="data.csv")
 
     if page == "Create Entry":
+
+        revenue = {}
+        expenses = {}
+        tax = {}
 
         revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=1)
         expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=1)
@@ -107,9 +140,11 @@ else:
 
                 name = c1.text_input(f"**Revenue Source {i+1}:**")
 
-                st.session_state.revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
-                st.session_state.tax[name] = st.session_state.revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
+                tax[name] = revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
 
+                revenue[name] = round(revenue[name], 2)
+                tax[name] = round(tax[name], 2)
 
         if expensecount > 0:
             
@@ -122,71 +157,72 @@ else:
 
                 name = c1.text_input(f"**Expense {i+1}:**")
 
-                st.session_state.expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+                expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+                expenses[name] = round(expenses[name], 2)
 
         st.write("---")
 
-        st.session_state.totalrevenue = sum(st.session_state.revenue.values())
-        st.session_state.totalexpenses = sum(st.session_state.expenses.values())
-        st.session_state.totaltax = sum(st.session_state.tax.values())
+        totalrevenue = sum(revenue.values())
+        totalexpenses = sum(expenses.values())
+        totaltax = sum(tax.values())
 
         c1, c2, c3 = st.columns(3)
 
-        st.session_state.netincome = st.session_state.totalrevenue - st.session_state.totalexpenses - st.session_state.totaltax
+        netincome = totalrevenue - totalexpenses - totaltax
 
 
-        revenuestr = f"{np.abs(round(st.session_state.totalrevenue, 2))}"
+        revenuestr = f"{np.abs(round(totalrevenue, 2))}"
 
         if (len(revenuestr.split(".")[1]) == 1):
             revenuestr += "0"
 
-        if (st.session_state.totalrevenue == 0):
+        if (totalrevenue == 0):
             revenuestr = f"(0.00)"        
 
-        if st.session_state.totalrevenue < 0:
+        if totalrevenue < 0:
             revenuestr = f"({revenuestr})"
 
 
-        expensestr = f"{round(st.session_state.totalexpenses, 2)}"
+        expensestr = f"{round(totalexpenses, 2)}"
 
         if (len(expensestr.split(".")[1]) == 1):
             expensestr += "0"
 
-        if (st.session_state.totalexpenses == 0):
+        if (totalexpenses == 0):
             expensestr = f"0.00"        
 
 
-        taxstr = f"{round(st.session_state.totaltax, 2)}"
+        taxstr = f"{round(totaltax, 2)}"
 
         if (len(taxstr.split(".")[1]) == 1):
             taxstr += "0"
 
-        if (st.session_state.totaltax == 0):
+        if (totaltax == 0):
             taxstr = f"0.00"        
 
 
-        netincomestr = f"{np.abs(round(st.session_state.netincome, 2))}"
+        netincomestr = f"{np.abs(round(netincome, 2))}"
 
         if (len(netincomestr.split(".")[1]) == 1):
             netincomestr += "0"
 
-        if st.session_state.netincome < 0:
+        if netincome < 0:
             netincomestr = f"({netincomestr})"
 
-        if (st.session_state.netincome == 0):
+        if (netincome == 0):
             netincomestr = f"(0.00)"        
 
 
-        st.session_state.totalvals = {
+        totalvals = {
         
-            "Total Revenue": [st.session_state.netincome],
-            "Total Expenses": [st.session_state.netincome],
-            "Total Tax": [st.session_state.totaltax],
-            "Net Income": [st.session_state.netincome]
+            "Total Revenue": [totalrevenue],
+            "Total Expenses": [totalexpenses],
+            "Total Tax": [totaltax],
+            "Net Income": [netincome]
         
         }
 
-        st.session_state.totalvalsstr = {
+        totalvalsstr = {
         
             "Total Revenue": [f"$ {revenuestr}"],
             "Total Expenses": [f"$ ({expensestr})"],
@@ -195,10 +231,50 @@ else:
         
         }
 
-        st.session_state.totalvalsstr = pd.DataFrame().from_dict(st.session_state.totalvalsstr)
+        totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
         st.write("---")
-        st.dataframe(st.session_state.totalvalsstr, hide_index=True)
+        st.dataframe(totalvalsstr, hide_index=True)
 
         if sidebar.button("Save Entry"):
-            savedata()
+
+            addEntry(st.session_state.userdata, totalvals)
+            st.session_state.userdata = pd.read_csv("data.csv")
+            st.session_state.userdata = cleanData(st.session_state.userdata)
+
+    elif page == "View Entries":
+
+        showColsExpander = sidebar.expander("**Selected Columns**")
+        showCols = []
+
+        for title in totaltitles:
+            
+            if showColsExpander.checkbox(title, value=True):
+                showCols.append(title)
+
+        st.session_state.userdata = cleanData(st.session_state.userdata)
+
+        if len(st.session_state.userdata) == 0:
+            st.subheader("Please add an entry before attempting to view your entries.")            
+
+        else:
+
+            startentry = sidebar.number_input("Starting Entry Number", 1, len(st.session_state.userdata), value=1)-1
+            endentry = sidebar.number_input("Ending Entry Number", startentry, len(st.session_state.userdata), value=len(st.session_state.userdata))
+
+            if showCols == []:
+                st.subheader("Please select a column to view.")
+
+            else:
+                st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], use_container_width=True, hide_index=True)
+
+                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
+                    
+                    newdata = {}
+
+                    for title in totaltitles:
+                        newdata[title] = []
+
+                    st.session_state.userdata = pd.DataFrame.from_dict(newdata)
+
+                    saveEntries(st.session_state.userdata)
