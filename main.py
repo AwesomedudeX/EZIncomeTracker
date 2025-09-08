@@ -1,4 +1,4 @@
-# FIX DATA SAVING
+# ADD DATA UPLOADING AND EDITING
 
 import streamlit as st
 
@@ -100,7 +100,7 @@ if sidebar.button("Refresh Page"):
 if page == "Home":
 
     st.title(":green[EZ] Income Tracker")
-    st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with all of your income tracking needs, with data management, analysis, visualization and prediction features that make budgeting easy. If you have used this app before, upload your `data.csv` file from your last session to the upload box below. If this is your first time, head to `Create Entry` to get started.")
+    st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with all of your income tracking needs, with data management, analysis, visualization and prediction features that make budgeting easy. Make sure to create entries **every month** for the best results. If you have used this app before, upload your `data.csv` file from your last session to the upload box below. If this is your first time, head to `Create Entry` to get started.")
 
     datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type="csv")
 
