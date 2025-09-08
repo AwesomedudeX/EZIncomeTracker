@@ -1,5 +1,3 @@
-# ADD DATA UPLOADING AND EDITING
-
 import streamlit as st
 
 # Webpage Settings
