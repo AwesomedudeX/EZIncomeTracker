@@ -95,24 +95,30 @@ st.sidebar.title(":green[EZ] Income Tracker")
 page = st.sidebar.radio("**Navigation:**", pages)
 
 if sidebar.button("Refresh Page"):
-    sidebar.subheader("Page refreshed successfully!")
+    sidebar.success("Page refreshed successfully!")
 
 if page == "Home":
 
     st.title(":green[EZ] Income Tracker")
     st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with all of your income tracking needs, with data management, analysis, visualization and prediction features that make budgeting easy. Make sure to create entries **every month** for the best results. If you have used this app before, upload your `data.csv` file from your last session to the upload box below. If this is your first time, head to `Create Entry` to get started.")
 
-    datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type="csv")
+    datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type=["csv"])
 
-#    if datafile and st.button("Upload File"):
+    if datafile and st.button("Upload File"):
         
-#        st.write(datafile.getvalue())
-#        df = datafile.getvalue()
-#        st.write(df)
+        try:
 
-#        open("data.csv", "w").write(readdata)
-#        st.write("Data file uploaded successfully!")
-#        time.sleep(3)
+            df = pd.read_csv(datafile)
+
+            st.success("Data file uploaded successfully!")
+
+            df = cleanData(df)
+            st.session_state.userdata = df
+            saveEntries(st.session_state.userdata)
+
+
+        except:
+            st.error("There was an issue in uploading your file. Please try again.")
 
 else:
     
