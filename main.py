@@ -26,7 +26,7 @@ import seaborn as sn
 
 from sklearn.linear_model import LinearRegression as lreg
 
-if ["userdata"] not in st.session_state:
+if ["userdata", "userid"] not in st.session_state:
 
     try:
         st.session_state.userdata = pd.read_csv("data.csv")
@@ -37,6 +37,9 @@ if ["userdata"] not in st.session_state:
 
         for title in totaltitles:
             st.session_state.userdata[title] = []
+
+    st.session_state.userid = 0
+
 
 def isNum(num: str):
     
@@ -93,6 +96,10 @@ page = st.sidebar.radio("**Navigation:**", pages)
 
 if sidebar.button("Refresh Page"):
     sidebar.success("Page refreshed successfully!")
+
+if sidebar.checkbox("Activate Session"):
+    st.session_state.userid = np.random.randint(1, 10000)
+    sidebar.write(st.session_state.userid)
 
 if page == "Home":
 
