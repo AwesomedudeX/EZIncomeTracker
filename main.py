@@ -304,7 +304,8 @@ else:
                 st.subheader("Please select a column to view.")
 
             else:
-                
+
+                st.header("Entry Preview")
                 st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], use_container_width=True, hide_index=True)
 
                 if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
