@@ -270,6 +270,7 @@ else:
         totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
         st.write("---")
+        st.header("Entry Preview")
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
         if sidebar.button("Create Entry"):
@@ -305,7 +306,6 @@ else:
 
             else:
 
-                st.header("Entry Preview")
                 st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], use_container_width=True, hide_index=True)
 
                 if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
