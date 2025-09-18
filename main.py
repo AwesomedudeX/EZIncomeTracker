@@ -26,21 +26,6 @@ import seaborn as sn
 
 from sklearn.linear_model import LinearRegression as lreg
 
-if ["userdata", "userid"] not in st.session_state:
-
-    try:
-        st.session_state.userdata = pd.read_csv("data.csv")
-
-    except:
-        
-        st.session_state.userdata = pd.DataFrame()
-
-        for title in totaltitles:
-            st.session_state.userdata[title] = []
-
-    st.session_state.userid = 0
-
-
 def isNum(num: str):
     
     try:
@@ -64,14 +49,14 @@ def cleanData(df):
 
     return df
 
-def saveEntries(df):
+def saveEntries(df, id):
 
     df = cleanData(df)
 
     write = str(df.to_csv())
-    open("data.csv", "w").write(write)
+    open(f"data_{id}.csv", "w").write(write)
 
-def addEntry(df, newvals: dict):
+def addEntry(df, newvals: dict, id):
 
     data = {}
 
@@ -85,8 +70,32 @@ def addEntry(df, newvals: dict):
         data[title].append(newvals[title][0])
     
     newdf = pd.DataFrame().from_dict(data)
-    saveEntries(newdf)
+    saveEntries(newdf, id)
 
+if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state:
+
+    st.session_state.currentids = []
+
+    try:
+        st.session_state.userdata = pd.read_csv("data.csv")
+
+    except:
+        
+        st.session_state.userdata = pd.DataFrame()
+
+        for title in totaltitles:
+            st.session_state.userdata[title] = []
+            
+    import users
+
+    st.session_state.currentids = users.userids
+    st.session_state.userid = st.session_state.currentids[-1] + 1
+
+    st.session_state.currentids.append(st.session_state.userid)
+
+    write = f"userids = {st.session_state.currentids}"
+
+    open("users.py", "w").write(write)
 
 sidebar = st.sidebar
 
@@ -96,11 +105,7 @@ page = st.sidebar.radio("**Navigation:**", pages)
 
 if sidebar.button("Refresh Page"):
     sidebar.success("Page refreshed successfully!")
-
-if sidebar.checkbox("Activate Session"):
-    st.session_state.userid = np.random.randint(1, 10000)
-    sidebar.write(st.session_state.userid)
-
+    
 if page == "Home":
 
     st.title(":green[EZ] Income Tracker")
@@ -118,14 +123,14 @@ if page == "Home":
 
             df = cleanData(df)
             st.session_state.userdata = df
-            saveEntries(st.session_state.userdata)
+            saveEntries(st.session_state.userdata, st.session_state.userid)
 
 
         except:
             st.error("There was an issue in uploading your file. Please try again.")
 
 else:
-    
+
     st.title(page)
     
     st.session_state.userdata = cleanData(st.session_state.userdata)
@@ -269,8 +274,8 @@ else:
 
         if sidebar.button("Create Entry"):
 
-            addEntry(st.session_state.userdata, totalvals)
-            st.session_state.userdata = pd.read_csv("data.csv")
+            addEntry(st.session_state.userdata, totalvals, st.session_state.userid)
+            st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
             st.session_state.userdata = cleanData(st.session_state.userdata)
 
             sidebar.success("Entry created successfully.")
@@ -311,7 +316,9 @@ else:
 
                     st.session_state.userdata = pd.DataFrame.from_dict(newdata)
 
-                    saveEntries(st.session_state.userdata)
+                    saveEntries(st.session_state.userdata, st.session_state.userid)
+                    st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+                    st.session_state.userdata = cleanData(st.session_state.userdata)
 
     elif page == "Edit Entry":
 
@@ -459,8 +466,6 @@ else:
             for title in totaltitles:
                 st.session_state.userdata[title][entryno] = totalvals[title][0]
             
-            saveEntries(st.session_state.userdata)
-            st.session_state.userdata = pd.read_csv("data.csv")
-            st.session_state.userdata = cleanData(st.session_state.userdata)
+            saveEntries(st.session_state.userdata, st.session_state.userid)
 
             sidebar.success("Entry created successfully.")
