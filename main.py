@@ -266,6 +266,7 @@ else:
             "Net Income": [f"$ {netincomestr}"]
         
         }
+        
 
         totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
