@@ -151,7 +151,7 @@ else:
         c1, c2, c3 = st.columns(3)
     
 #        try:
-        monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
+        monthno = c1.number_input("**Month No.**", min_value=list(st.session_state.userdata["Month No."])[-1]+1, step=1)
 
 #        except:
 #           monthno = c1.number_input("**Month No.**", min_value=1, step=1)
