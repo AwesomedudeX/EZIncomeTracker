@@ -14,6 +14,7 @@ requiredlibraries = [
 ]
 totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
 pages = ["Home", "Create Entry", "View Entries", "Edit Entry"]
+months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
 import os
@@ -140,8 +141,7 @@ else:
     now = dt.now()
     currentmonth = now.strftime("%B")
     currentyear = int(now.strftime("%Y"))
-    sidebar.write("Month:", currentmonth)
-    sidebar.write("Year:", currentyear)
+    monthindex = 0
 
     if page == "Create Entry":
 
@@ -158,13 +158,19 @@ else:
         c1, c2, c3 = st.columns(3)
     
         try:
-            monthno = c1.number_input("**Month No.**", min_value=list(st.session_state.userdata["Month No."])[-1]+1, step=1)
+            monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
 
         except:
             monthno = c1.number_input("**Month No.**", min_value=1, step=1)
 
-        month = c2.selectbox("**Month**", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
-        year = c3.number_input("**Year**", 2025, step=1)
+        for m in range(len(months)):
+                
+            if currentmonth == months[m]:
+                monthindex = m
+                break
+
+        month = c2.selectbox("**Month**", months, index=monthindex)
+        year = c3.number_input("**Year**", currentyear, step=1)
 
 
         if revenuecount > 0:
@@ -355,8 +361,14 @@ else:
             except:
                 monthno = c1.number_input("**Month No.**", min_value=1, step=1)
 
-            month = c2.selectbox("**Month**", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
-            year = c3.number_input("**Year**", 2025, step=1)
+            for m in range(len(months)):
+                
+                if currentmonth == months[m]:
+                    monthindex = m
+                    break
+
+            month = c2.selectbox("**Month**", months, index=monthindex)
+            year = c3.number_input("**Year**", currentyear, step=1)
 
             if revenuecount > 0:
                 
