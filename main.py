@@ -137,8 +137,9 @@ else:
     st.session_state.userdata = cleanData(st.session_state.userdata)
     download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
 
-    currentmonth = int(dt.now.strftime("%B"))
-    currentyear = int(dt.now.strftime("%Y"))
+    now = dt.now()
+    currentmonth = now.strftime("%B")
+    currentyear = int(now.strftime("%Y"))
     sidebar.write("Month:", currentmonth)
     sidebar.write("Year:", currentyear)
 
