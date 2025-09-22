@@ -266,7 +266,7 @@ else:
             "Net Income": [f"$ {netincomestr}"]
         
         }
-        
+
 
         totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
@@ -324,150 +324,155 @@ else:
 
     elif page == "Edit Entry":
 
-        revenue = {}
-        expenses = {}
-        tax = {}
+        if len(st.session_state.userdata) == 0:
+            st.subheader("Please add an entry before attempting to edit your entries.")            
 
-        entryno = sidebar.number_input("**Entry Number:**", min_value=1, max_value=len(st.session_state.userdata)) - 1
-        revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=1)
-        expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=1)
+        else:
 
-        st.write("---")
-        st.header("Time of Entry")
+            revenue = {}
+            expenses = {}
+            tax = {}
 
-        c1, c2, c3 = st.columns(3)
-    
-        try:
-            monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
+            entryno = sidebar.number_input("**Entry Number:**", min_value=1, max_value=len(st.session_state.userdata)) - 1
+            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=1)
+            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=1)
 
-        except:
-            monthno = c1.number_input("**Month No.**", min_value=1, step=1)
-
-        month = c2.selectbox("**Month**", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
-        year = c3.number_input("**Year**", 2025, step=1)
-
-        if revenuecount > 0:
-            
             st.write("---")
-            st.header("Revenue Sources")
+            st.header("Time of Entry")
+
+            c1, c2, c3 = st.columns(3)
+        
+            try:
+                monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
+
+            except:
+                monthno = c1.number_input("**Month No.**", min_value=1, step=1)
+
+            month = c2.selectbox("**Month**", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
+            year = c3.number_input("**Year**", 2025, step=1)
+
+            if revenuecount > 0:
+                
+                st.write("---")
+                st.header("Revenue Sources")
+
+                c1, c2, c3 = st.columns(3)
+
+                for i in range(revenuecount):
+
+                    name = c1.text_input(f"**Revenue Source {i+1}:**")
+
+                    revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
+                    tax[name] = revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+
+                    revenue[name] = round(revenue[name], 2)
+                    tax[name] = round(tax[name], 2)
+
+            if expensecount > 0:
+                
+                st.write("---")
+                st.header("Expenses")
+
+                c1, c2 = st.columns(2)
+
+                for i in range(expensecount):
+
+                    name = c1.text_input(f"**Expense {i+1}:**")
+
+                    expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+                    expenses[name] = round(expenses[name], 2)
+
+
+            totalrevenue = sum(revenue.values())
+            totalexpenses = sum(expenses.values())
+            totaltax = sum(tax.values())
 
             c1, c2, c3 = st.columns(3)
 
-            for i in range(revenuecount):
+            netincome = totalrevenue - totalexpenses - totaltax
 
-                name = c1.text_input(f"**Revenue Source {i+1}:**")
 
-                revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
-                tax[name] = revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+            revenuestr = f"{np.abs(round(totalrevenue, 2))}"
 
-                revenue[name] = round(revenue[name], 2)
-                tax[name] = round(tax[name], 2)
+            if (len(revenuestr.split(".")[1]) == 1):
+                revenuestr += "0"
 
-        if expensecount > 0:
+            if (totalrevenue == 0):
+                revenuestr = f"(0.00)"        
+
+            if totalrevenue < 0:
+                revenuestr = f"({revenuestr})"
+
+
+            expensestr = f"{round(totalexpenses, 2)}"
+
+            if (len(expensestr.split(".")[1]) == 1):
+                expensestr += "0"
+
+            if (totalexpenses == 0):
+                expensestr = f"0.00"        
+
+
+            taxstr = f"{round(totaltax, 2)}"
+
+            if (len(taxstr.split(".")[1]) == 1):
+                taxstr += "0"
+
+            if (totaltax == 0):
+                taxstr = f"0.00"        
+
+
+            netincomestr = f"{np.abs(round(netincome, 2))}"
+
+            if (len(netincomestr.split(".")[1]) == 1):
+                netincomestr += "0"
+
+            if netincome < 0:
+                netincomestr = f"({netincomestr})"
+
+            if (netincome == 0):
+                netincomestr = f"(0.00)"        
+
+            currentvals = {
             
+                "Month No.": [st.session_state.userdata["Month No."][entryno]],
+                "Month": [st.session_state.userdata["Month"][entryno]],
+                "Year": [st.session_state.userdata["Year"][entryno]],
+                "Total Revenue": [st.session_state.userdata["Total Revenue"][entryno]],
+                "Total Expenses": [st.session_state.userdata["Total Expenses"][entryno]],
+                "Total Tax": [st.session_state.userdata["Total Tax"][entryno]],
+                "Net Income": [st.session_state.userdata["Net Income"][entryno]]
+            
+            }
+
+            totalvals = {
+            
+                "Month No.": [monthno],
+                "Month": [month],
+                "Year": [str(year)],
+                "Total Revenue": [totalrevenue],
+                "Total Expenses": [totalexpenses],
+                "Total Tax": [totaltax],
+                "Net Income": [netincome]
+            
+            }
+
             st.write("---")
-            st.header("Expenses")
 
-            c1, c2 = st.columns(2)
+            st.subheader("Current Entry:")
+            st.dataframe(currentvals, hide_index=True, use_container_width=True)
+            st.subheader("Edited Entry:")
+            st.dataframe(totalvals, hide_index=True, use_container_width=True)
 
-            for i in range(expensecount):
+            st.write("---")
 
-                name = c1.text_input(f"**Expense {i+1}:**")
+            st.expander("**Current Entries**").dataframe(st.session_state.userdata, use_container_width=True)
 
-                expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
-                expenses[name] = round(expenses[name], 2)
+            if sidebar.button("Save Entry"):
 
+                for title in totaltitles:
+                    st.session_state.userdata[title][entryno] = totalvals[title][0]
+                
+                saveEntries(st.session_state.userdata, st.session_state.userid)
 
-        totalrevenue = sum(revenue.values())
-        totalexpenses = sum(expenses.values())
-        totaltax = sum(tax.values())
-
-        c1, c2, c3 = st.columns(3)
-
-        netincome = totalrevenue - totalexpenses - totaltax
-
-
-        revenuestr = f"{np.abs(round(totalrevenue, 2))}"
-
-        if (len(revenuestr.split(".")[1]) == 1):
-            revenuestr += "0"
-
-        if (totalrevenue == 0):
-            revenuestr = f"(0.00)"        
-
-        if totalrevenue < 0:
-            revenuestr = f"({revenuestr})"
-
-
-        expensestr = f"{round(totalexpenses, 2)}"
-
-        if (len(expensestr.split(".")[1]) == 1):
-            expensestr += "0"
-
-        if (totalexpenses == 0):
-            expensestr = f"0.00"        
-
-
-        taxstr = f"{round(totaltax, 2)}"
-
-        if (len(taxstr.split(".")[1]) == 1):
-            taxstr += "0"
-
-        if (totaltax == 0):
-            taxstr = f"0.00"        
-
-
-        netincomestr = f"{np.abs(round(netincome, 2))}"
-
-        if (len(netincomestr.split(".")[1]) == 1):
-            netincomestr += "0"
-
-        if netincome < 0:
-            netincomestr = f"({netincomestr})"
-
-        if (netincome == 0):
-            netincomestr = f"(0.00)"        
-
-        currentvals = {
-        
-            "Month No.": [st.session_state.userdata["Month No."][entryno]],
-            "Month": [st.session_state.userdata["Month"][entryno]],
-            "Year": [st.session_state.userdata["Year"][entryno]],
-            "Total Revenue": [st.session_state.userdata["Total Revenue"][entryno]],
-            "Total Expenses": [st.session_state.userdata["Total Expenses"][entryno]],
-            "Total Tax": [st.session_state.userdata["Total Tax"][entryno]],
-            "Net Income": [st.session_state.userdata["Net Income"][entryno]]
-        
-        }
-
-        totalvals = {
-        
-            "Month No.": [monthno],
-            "Month": [month],
-            "Year": [str(year)],
-            "Total Revenue": [totalrevenue],
-            "Total Expenses": [totalexpenses],
-            "Total Tax": [totaltax],
-            "Net Income": [netincome]
-        
-        }
-
-        st.write("---")
-
-        st.subheader("Current Entry:")
-        st.dataframe(currentvals, hide_index=True, use_container_width=True)
-        st.subheader("Edited Entry:")
-        st.dataframe(totalvals, hide_index=True, use_container_width=True)
-
-        st.write("---")
-
-        st.expander("**Current Entries**").dataframe(st.session_state.userdata, use_container_width=True)
-
-        if sidebar.button("Save Entry"):
-
-            for title in totaltitles:
-                st.session_state.userdata[title][entryno] = totalvals[title][0]
-            
-            saveEntries(st.session_state.userdata, st.session_state.userid)
-
-            sidebar.success("Entry created successfully.")
+                sidebar.success("Entry saved successfully.")
