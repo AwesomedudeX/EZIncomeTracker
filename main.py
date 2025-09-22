@@ -150,11 +150,11 @@ else:
 
         c1, c2, c3 = st.columns(3)
     
-#        try:
-        monthno = c1.number_input("**Month No.**", min_value=list(st.session_state.userdata["Month No."])[-1]+1, step=1)
+        try:
+            monthno = c1.number_input("**Month No.**", min_value=list(st.session_state.userdata["Month No."])[-1]+1, step=1)
 
-#        except:
-#           monthno = c1.number_input("**Month No.**", min_value=1, step=1)
+        except:
+            monthno = c1.number_input("**Month No.**", min_value=1, step=1)
 
         month = c2.selectbox("**Month**", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
         year = c3.number_input("**Year**", 2025, step=1)
