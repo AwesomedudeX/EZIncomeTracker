@@ -18,6 +18,7 @@ pages = ["Home", "Create Entry", "View Entries", "Edit Entry"]
 # Importing libraries/modules
 import os
 import time
+from datetime import datetime as dt
 
 import numpy as np
 import pandas as pd
@@ -135,6 +136,11 @@ else:
     
     st.session_state.userdata = cleanData(st.session_state.userdata)
     download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
+
+    currentmonth = int(dt.now.strftime("%B"))
+    currentyear = int(dt.now.strftime("%Y"))
+    sidebar.write("Month:", currentmonth)
+    sidebar.write("Year:", currentyear)
 
     if page == "Create Entry":
 
