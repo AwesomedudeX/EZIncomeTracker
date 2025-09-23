@@ -2,7 +2,7 @@
 import streamlit as st
 
 # Webpage Settings
-st.set_page_config(page_title="EZ Income Tracker", layout="wide", initial_sidebar_state="expanded", page_icon="💵")
+st.set_page_config(page_title="EZ Income Tracker", layout="wide", initial_sidebar_state="expanded", page_icon="logo.png")
 
 # Initializing constant variables
 requiredlibraries = [
