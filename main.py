@@ -318,8 +318,7 @@ else:
 
             interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
 
-            with interpolationExpander:
-                st.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the data would have been up to that month.")
+            interpolationExpander.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the data would have been up to that month.")
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
