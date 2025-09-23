@@ -300,6 +300,7 @@ else:
         showColsExpander = sidebar.expander("**Selected Columns**")
         showCols = []
 
+
         for title in totaltitles:
             
             if showColsExpander.checkbox(title, value=True):
@@ -314,6 +315,11 @@ else:
 
             startentry = sidebar.number_input("Starting Entry Number", 1, len(st.session_state.userdata), value=1)-1
             endentry = sidebar.number_input("Ending Entry Number", startentry, len(st.session_state.userdata), value=len(st.session_state.userdata))
+
+            interpolationExpander = sidebar.expander("Interpolate Missing Data")
+
+            with interpolationExpander:
+                st.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the data would have been up to that month.")
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
