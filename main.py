@@ -13,7 +13,7 @@ requiredlibraries = [
     "sklearn"
 ]
 totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
-pages = ["Home", "Create Entry", "View Entries", "Edit Entry"]
+pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
@@ -103,11 +103,15 @@ page = st.sidebar.radio("**Navigation:**", pages)
 if sidebar.button("Refresh Page"):
     sidebar.success("Page refreshed successfully!")
     
+if len(st.session_state.userdata) > 0:
+    st.session_state.userdata = cleanData(st.session_state.userdata)
+    download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
+
 if page == "Home":
 
     st.title(":green[EZ] Income Tracker")
     st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with **all** of your income tracking needs, with **data management**, **analysis**, **visualization** and **prediction features** that make budgeting **quick**, **easy** and **secure**. Make sure to create entries **every month** for the **best** results.")
-    st.write("**If you have used this website before**, upload your **`data.csv`** file from your **last session** to the box **below**. If this is your first time, head to **`Create Entry`** to get started. Once you're done, make sure to **save your data** by hitting the **`Download Data`** button on the sidebar **to the left**.")
+    st.write("**If you have used this website before**, upload your **`data.csv`** file from your **last session** to the box **below**. If this is your first time, head to the **`Add an Entry`** page to get started. Once you're done, make sure to **save your data** by hitting the **`Download Data`** button on the sidebar **to the left**.")
 
     datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type=["csv"])
 
@@ -131,15 +135,12 @@ else:
 
     st.title(page)
     
-    st.session_state.userdata = cleanData(st.session_state.userdata)
-    download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
-
     now = dt.now()
     currentmonth = now.strftime("%B")
     currentyear = int(now.strftime("%Y"))
     monthindex = 0
 
-    if page == "Create Entry":
+    if page == "Add an Entry":
 
         revenue = {}
         expenses = {}
@@ -283,7 +284,7 @@ else:
         st.header("Entry Preview")
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
-        if sidebar.button("Create Entry"):
+        if sidebar.button("Add an Entry"):
 
             addEntry(st.session_state.userdata, totalvals, st.session_state.userid)
             st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
@@ -301,7 +302,7 @@ else:
                 write = f"userids = {st.session_state.currentids}"
                 open("users.py", "w").write(write)
 
-    elif page == "View Entries":
+    elif page == "Your Income Data":
 
         showColsExpander = sidebar.expander("**Selected Columns**")
         showCols = []
@@ -346,7 +347,7 @@ else:
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                     st.session_state.userdata = cleanData(st.session_state.userdata)
 
-    elif page == "Edit Entry":
+    elif page == "Edit an Entry":
 
         if len(st.session_state.userdata) == 0:
             st.subheader("Please add an entry before attempting to edit your entries.")            
