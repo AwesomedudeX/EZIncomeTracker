@@ -1,4 +1,3 @@
-# Add month numbers to entries and automatic month/year selection
 import streamlit as st
 
 # Webpage Settings
@@ -507,3 +506,4 @@ else:
                 saveEntries(st.session_state.userdata, st.session_state.userid)
 
                 sidebar.success("Entry saved successfully.")
+
