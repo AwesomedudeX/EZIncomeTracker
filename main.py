@@ -44,9 +44,16 @@ def isNum(num: str):
 
 def cleanData(df):
     
-    for col in df.columns:
-        if "Unnamed" in col:
-            df.drop(col, axis='columns', inplace=True)
+    try:
+
+        for col in df.columns:
+            if "Unnamed" in col:
+                df.drop(col, axis='columns', inplace=True)
+
+        print(f"User {st.session_state.userid}'s data was cleaned successfully.")
+
+    except:
+        print(f"ERROR: Could not clean User {st.session_state.userid}'s data.")
 
     return df
 
@@ -54,24 +61,37 @@ def saveEntries(df, id):
 
     df = cleanData(df)
 
-    write = str(df.to_csv())
-    open(f"data_{id}.csv", "w").write(write)
+    try:
+
+        write = str(df.to_csv())
+        open(f"data_{id}.csv", "w").write(write)
+        print(f"\nSaved {st.session_state.userid}'s data sucessfully.")
+
+    except:
+        print(f"\nERROR: Could not save {st.session_state.userid}'s data.")
 
 def addEntry(df, newvals: dict, id):
 
-    data = {}
-
-    for title in totaltitles:
-
-        data[title] = []
-
-        for val in df[title]:
-            data[title].append(val)
-
-        data[title].append(newvals[title][0])
+    try:
     
-    newdf = pd.DataFrame().from_dict(data)
-    saveEntries(newdf, id)
+        data = {}
+
+        for title in totaltitles:
+
+            data[title] = []
+
+            for val in df[title]:
+                data[title].append(val)
+
+            data[title].append(newvals[title][0])
+        
+        newdf = pd.DataFrame().from_dict(data)
+        saveEntries(newdf, id)
+        
+        print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
+
+    except:
+        print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
 if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state:
 
@@ -299,7 +319,12 @@ else:
                 st.session_state.userid = st.session_state.currentids[-1] + 1
                 st.session_state.currentids.append(st.session_state.userid)
                 write = f"userids = {st.session_state.currentids}"
-                open("users.py", "w").write(write)
+
+                try:
+                    open("users.py", "w").write(write)
+                    print(f"\nAdded User {st.session_state.userid} successfully and saved IDs to file.")
+                except:
+                    print(f"\nCould not add User {st.session_State.userid}.")
 
     elif page == "Your Income Data":
 
