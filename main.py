@@ -12,7 +12,7 @@ requiredlibraries = [
     "sklearn"
 ]
 totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
-pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry"]
+pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Visualize Your Data"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
@@ -158,6 +158,13 @@ else:
     currentmonth = now.strftime("%B")
     currentyear = int(now.strftime("%Y"))
     monthindex = 0
+    lendata = len(st.session_state.userdata)
+    
+    if lendata > 1:
+        currentmonthno = list(st.session_state.userdata["Month No."])[-1]+1
+    
+    else:
+        currentmonthno = 1
 
     if page == "Add an Entry":
 
@@ -174,7 +181,7 @@ else:
         c1, c2, c3 = st.columns(3)
     
         try:
-            monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
+            monthno = c1.number_input("**Month No.**", min_value=currentmonthno, step=1)
 
         except:
             monthno = c1.number_input("**Month No.**", min_value=1, step=1)
@@ -311,7 +318,7 @@ else:
 
             sidebar.success("Entry created successfully.")
 
-            if st.session_state.userid not in st.session_state.currentids and len(st.session_state.userdata) > 0:
+            if st.session_state.userid not in st.session_state.currentids and lendata > 0:
 
                 import users
 
@@ -339,7 +346,7 @@ else:
 
         st.session_state.userdata = cleanData(st.session_state.userdata)
 
-        if len(st.session_state.userdata) == 0:
+        if lendata == 0:
             st.subheader("Please add an entry before attempting to view your entries.")            
 
         else:
@@ -348,8 +355,8 @@ else:
 
             interpolationExpander.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the data would have been up to that month.")
 
-            startentry = sidebar.number_input("Starting Entry Number", 1, len(st.session_state.userdata), value=1)-1
-            endentry = sidebar.number_input("Ending Entry Number", startentry, len(st.session_state.userdata), value=len(st.session_state.userdata))
+            startentry = sidebar.number_input("Starting Entry Number", 1, lendata, value=1)-1
+            endentry = sidebar.number_input("Ending Entry Number", startentry, lendata, value=lendata)
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
@@ -373,7 +380,7 @@ else:
 
     elif page == "Edit an Entry":
 
-        if len(st.session_state.userdata) == 0:
+        if lendata == 0:
             st.subheader("Please add an entry before attempting to edit your entries.")            
 
         else:
@@ -382,7 +389,7 @@ else:
             expenses = {}
             tax = {}
 
-            entryno = sidebar.number_input("**Entry Number:**", min_value=1, max_value=len(st.session_state.userdata)) - 1
+            entryno = sidebar.number_input("**Entry Number:**", min_value=1, max_value=lendata) - 1
             revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=1)
             expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=1)
 
@@ -392,7 +399,7 @@ else:
             c1, c2, c3 = st.columns(3)
         
             try:
-                monthno = c1.number_input("**Month No.**", min_value=st.session_state.userdata["Month No."][-1]+1, step=1)
+                monthno = c1.number_input("**Month No.**", min_value=currentmonthno, step=1)
 
             except:
                 monthno = c1.number_input("**Month No.**", min_value=1, step=1)
@@ -532,3 +539,45 @@ else:
 
                 sidebar.success("Entry saved successfully.")
 
+    elif page == "Visualize Your Data":
+
+        if lendata > 1:
+
+            cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
+            selectedcol = sidebar.selectbox("Column to Plot:", cols)
+            monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
+
+            gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
+            gtype = sidebar.selectbox("**Graph Type:**", gtypes)
+            startentry = sidebar.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
+            endentry = sidebar.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
+
+            x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+            y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
+
+            darkbg = sidebar.checkbox("Dark Mode", value=True)
+
+            if darkbg:
+                plt.style.use("dark_background")
+            else:
+                plt.style.use("classic")
+
+            fig, ax = plt.subplots()
+            ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
+            
+            if gtype == "Scatter Plot":
+                sn.scatterplot(x=x, y=y)
+
+            elif gtype == "Line Plot":
+                sn.lineplot(x=x, y=y)
+
+            elif gtype == "Linear Regression Plot":
+                sn.regplot(x=x, y=y)
+
+            else:
+                sn.barplot(x=x, y=y)
+            
+            st.pyplot(fig)
+
+        else:
+            st.subheader("Please enter more than one entry to plot a graph of your data.")
