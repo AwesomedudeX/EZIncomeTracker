@@ -84,7 +84,9 @@ def addEntry(df, newvals: dict, id):
                 data[title].append(val)
 
             data[title].append(newvals[title][0])
-        
+
+        st.write(data)
+
         newdf = pd.DataFrame().from_dict(data)
         saveEntries(newdf, id)
         
@@ -160,13 +162,15 @@ else:
     monthindex = 0
     lendata = len(st.session_state.userdata)
     
-    if lendata > 1:
+    if lendata > 0:
         currentmonthno = list(st.session_state.userdata["Month No."])[-1]+1
     
     else:
         currentmonthno = 1
 
     if page == "Add an Entry":
+
+        st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
 
         revenue = {}
         expenses = {}
@@ -311,7 +315,7 @@ else:
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
         if sidebar.button("Add an Entry"):
-
+                
             addEntry(st.session_state.userdata, totalvals, st.session_state.userid)
             st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
             st.session_state.userdata = cleanData(st.session_state.userdata)
@@ -399,7 +403,7 @@ else:
             c1, c2, c3 = st.columns(3)
         
             try:
-                monthno = c1.number_input("**Month No.**", min_value=currentmonthno, step=1)
+                monthno = c1.number_input("**Month No.**", min_value=1, max_value=currentmonthno-1, value=currentmonthno-1, step=1)
 
             except:
                 monthno = c1.number_input("**Month No.**", min_value=1, step=1)
@@ -564,6 +568,9 @@ else:
 
             fig, ax = plt.subplots()
             ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
+
+            plt.xlabel("Month No.")
+            plt.ylabel(f"{selectedcol} ($)")
             
             if gtype == "Scatter Plot":
                 sn.scatterplot(x=x, y=y)
@@ -574,7 +581,7 @@ else:
             elif gtype == "Linear Regression Plot":
                 sn.regplot(x=x, y=y)
 
-            else:
+            elif gtype == "Bar Plot":
                 sn.barplot(x=x, y=y)
             
             st.pyplot(fig)
