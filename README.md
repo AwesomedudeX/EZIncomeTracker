@@ -1,1 +1,1 @@
-# EZ-Income-Tracker
+# EZ Income Tracker
