@@ -1,3 +1,4 @@
+# COMPLETE CURRENT TASK - ADD PATCH FOR EDITING EXISTING ACCOUNTS
 import streamlit as st
 
 # Webpage Settings
@@ -27,6 +28,8 @@ import seaborn as sn
 
 from sklearn.linear_model import LinearRegression as lreg
 
+pd.set_option("display.max_columns", None, "display.max_rows", None)
+
 def isNum(num: str):
     
     try:
@@ -47,7 +50,7 @@ def cleanData(df):
     try:
 
         for col in df.columns:
-            if "Unnamed" in col:
+            if "Unnamed:" in col:
                 df.drop(col, axis='columns', inplace=True)
 
         print(f"User {st.session_state.userid}'s data was cleaned successfully.")
@@ -61,6 +64,8 @@ def saveEntries(df, id):
 
     df = cleanData(df)
 
+    st.write(df)
+
     try:
 
         write = str(df.to_csv())
@@ -70,26 +75,37 @@ def saveEntries(df, id):
     except:
         print(f"\nERROR: Could not save {st.session_state.userid}'s data.")
 
-def addEntry(df, newvals: dict, id):
+def addEntry(df: pd.DataFrame, newvals: dict, id: int):
 
     try:
     
         data = {}
 
-        for title in totaltitles:
+        for col in df.columns:
 
-            data[title] = []
+            data[col] = []
 
-            for val in df[title]:
-                data[title].append(val)
+            for val in df[col]:
+                data[col].append(val)
 
-            data[title].append(newvals[title][0])
+            data[col].append(newvals[col][0])
 
-        st.write(data)
+        for acc in [col for col in newvals if col not in df.columns]:
+
+            if acc not in data.keys():
+                if len(data["Month No."]) > 1:
+                    data[acc] = [0 for i in range(len(data["Month No."])-1)]
+                else:
+                    data[acc] = []
+            
+            data[acc].append(newvals[acc][0])
+
+        for acc in [col for col in newvals if col in df.columns]:            
+            data[acc].append(newvals[acc][0])
 
         newdf = pd.DataFrame().from_dict(data)
-        saveEntries(newdf, id)
-        
+        saveEntries(newdf, id)        
+
         print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
 
     except:
@@ -206,16 +222,34 @@ else:
             st.header("Revenue Sources")
 
             c1, c2, c3 = st.columns(3)
+            
+            unnamedaccounts = 0
 
             for i in range(revenuecount):
 
                 name = c1.text_input(f"**Revenue Source {i+1}:**")
 
-                revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
-                tax[name] = revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                if name == "":
+                    unnamedaccounts += 1
+                    revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
+                    taxcol = f"Unnamed Tax Account {unnamedaccounts} (Tax)"
 
-                revenue[name] = round(revenue[name], 2)
-                tax[name] = round(tax[name], 2)
+                else:
+                    revenuecol = f"{name} (Revenue)"
+                    taxcol = f"{name} (Tax)"
+
+                if revenuecol in revenue:
+                    revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
+                else:
+                    revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
+
+                if taxcol in tax:
+                    tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                else:
+                    tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+
+                revenue[revenuecol] = round(revenue[revenuecol], 2)
+                tax[taxcol] = round(tax[taxcol], 2)
 
         if expensecount > 0:
             
@@ -224,12 +258,26 @@ else:
 
             c1, c2 = st.columns(2)
 
+            unnamedaccounts = 0
+
             for i in range(expensecount):
 
                 name = c1.text_input(f"**Expense {i+1}:**")
 
-                expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
-                expenses[name] = round(expenses[name], 2)
+                if name == "":
+                    unnamedaccounts += 1
+                    expensecol = f"Unnamed Expense Account {unnamedaccounts} (Expense)"
+
+                else:
+                    expensecol = f"{name} (Expense)"
+                    
+                if expensecol in expenses:
+                    expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+
+                else:
+                    expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+
+                expenses[expensecol] = round(expenses[expensecol], 2)
 
 
         totalrevenue = sum(revenue.values())
@@ -241,21 +289,17 @@ else:
         netincome = totalrevenue - totalexpenses - totaltax
 
 
-        revenuestr = f"{np.abs(round(totalrevenue, 2))}"
+        revenuestr = f"{round(totalrevenue, 2)}"
 
-        if (len(revenuestr.split(".")[1]) == 1):
+        if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
             revenuestr += "0"
 
         if (totalrevenue == 0):
-            revenuestr = f"(0.00)"        
-
-        if totalrevenue < 0:
-            revenuestr = f"({revenuestr})"
-
+            revenuestr = f"(0.00)"
 
         expensestr = f"{round(totalexpenses, 2)}"
 
-        if (len(expensestr.split(".")[1]) == 1):
+        if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
             expensestr += "0"
 
         if (totalexpenses == 0):
@@ -273,7 +317,7 @@ else:
 
         netincomestr = f"{np.abs(round(netincome, 2))}"
 
-        if (len(netincomestr.split(".")[1]) == 1):
+        if ("." in netincomestr and len(netincomestr.split(".")[1]) == 1):
             netincomestr += "0"
 
         if netincome < 0:
@@ -307,6 +351,42 @@ else:
         
         }
 
+        for revenueacc, taxacc in zip(revenue.keys(), tax.keys()):
+
+            totalvals[revenueacc] = [revenue[revenueacc]]
+            totalvals[taxacc] = [tax[taxacc]]
+
+            revenuestr = f"{round(revenue[revenueacc], 2)}"
+
+            if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
+                revenuestr += "0"
+
+            if (totalrevenue == 0):
+                revenuestr = f"(0.00)"
+
+            taxstr = f"{round(tax[taxacc], 2)}"
+
+            if ("." in taxstr and len(taxstr.split(".")[1]) == 1):
+                taxstr += "0"
+
+            if (tax[taxacc] == 0):
+                taxstr = f"0.00"
+            
+            totalvalsstr[revenueacc] = [f"$ {revenuestr}"]
+            totalvalsstr[taxacc] = [f"$ ({taxstr})"]
+
+        for acc in expenses:
+
+            expensestr = f"{round(expenses[acc], 2)}"
+
+            if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
+                expensestr += "0"
+
+            if (expenses[acc] == 0):
+                expensestr = f"0.00"
+
+            totalvals[acc] = [expenses[acc]]
+            totalvalsstr[acc] = [f"$ ({expensestr})"]
 
         totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
@@ -316,12 +396,6 @@ else:
 
         if sidebar.button("Add an Entry"):
                 
-            addEntry(st.session_state.userdata, totalvals, st.session_state.userid)
-            st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-            st.session_state.userdata = cleanData(st.session_state.userdata)
-
-            sidebar.success("Entry created successfully.")
-
             if st.session_state.userid not in st.session_state.currentids and lendata > 0:
 
                 import users
@@ -335,7 +409,13 @@ else:
                     open("users.py", "w").write(write)
                     print(f"\nAdded User {st.session_state.userid} successfully and saved IDs to file.")
                 except:
-                    print(f"\nCould not add User {st.session_State.userid}.")
+                    print(f"\nCould not add User {st.session_state.userid}.")
+
+            addEntry(st.session_state.userdata, totalvals, st.session_state.userid)
+            st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+            st.session_state.userdata = cleanData(st.session_state.userdata)
+
+            sidebar.success("Entry created successfully.")
 
     elif page == "Your Income Data":
 
@@ -343,10 +423,10 @@ else:
         showCols = []
 
 
-        for title in totaltitles:
+        for col in st.session_state.userdata.columns:
             
-            if showColsExpander.checkbox(title, value=True):
-                showCols.append(title)
+            if showColsExpander.checkbox(col, value=True):
+                showCols.append(col)
 
         st.session_state.userdata = cleanData(st.session_state.userdata)
 
@@ -393,9 +473,12 @@ else:
             expenses = {}
             tax = {}
 
+            revlist = [rev for rev in st.session_state.userdata.columns if "(Revenue)" in rev]
+            explist = [exp for exp in st.session_state.userdata.columns if "(Expense)" in exp]
+
             entryno = sidebar.number_input("**Entry Number:**", min_value=1, max_value=lendata) - 1
-            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=1)
-            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=1)
+            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(revlist))
+            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(explist))
 
             st.write("---")
             st.header("Time of Entry")
@@ -426,7 +509,16 @@ else:
 
                 for i in range(revenuecount):
 
-                    name = c1.text_input(f"**Revenue Source {i+1}:**")
+                    revacc = ""
+                    expacc = ""
+
+                    if (i < len(revlist)):
+                        revacc = revlist[i]
+
+                    if (i < len(explist)):
+                        expacc = explist[i]
+
+                    name = c1.text_input(f"**Revenue Source {i+1}:**", value=revacc)
 
                     revenue[name] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01)
                     tax[name] = revenue[name] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
@@ -443,7 +535,7 @@ else:
 
                 for i in range(expensecount):
 
-                    name = c1.text_input(f"**Expense {i+1}:**")
+                    name = c1.text_input(f"**Expense {i+1}:**", expacc)
 
                     expenses[name] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
                     expenses[name] = round(expenses[name], 2)
