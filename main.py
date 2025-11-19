@@ -513,8 +513,8 @@ else:
 
                 st.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the values for that month could have been based on your previous and following entry.")
 
-                intmonths = st.session_state.userdata["Month No."].astype(int)
-                maxval = intmonths.max()
+                intmonths = list(st.session_state.userdata["Month No."].astype(int))
+                maxval = max(intmonths)
                 missingmonths = []
 
                 for num in range(1, maxval):
@@ -532,29 +532,32 @@ else:
                     previndex = 0
                     nextindex = 0
 
-                    prevmonth = 0
-                    nextmonth = 0
+                    prevmonth = 1
+                    nextmonth = maxval
 
                     for i in range(len(st.session_state.userdata)):
+
+                        val = int(st.session_state.userdata.iloc[i, 0])
                         
-                        if st.session_state.userdata.iloc[i, 0] == targetmonth:
+                        if val == targetmonth:
                             targetindex = i
 
-                        if st.session_state.userdata.iloc[i, 0] < targetmonth:
+                        if val < targetmonth:
                             previndex = i
                             prevmonth = st.session_state.userdata.iloc[previndex, 0]
 
-                        if st.session_state.userdata.iloc[i, 0] > targetmonth and st.session_state.userdata.iloc[i, 0] < nextmonth:
+                        if  val > targetmonth and val < nextmonth:
                             nextindex = i
                             nextmonth = st.session_state.userdata.iloc[nextindex, 0]
+                            st.write(nextmonth)
 
                     prevgap = targetmonth - prevmonth
                     nextgap = nextmonth - targetmonth
 
-                    interval = ( (st.session_state.userdata.iloc[previndex, 0]/prevgap) + (st.session_state.userdata.iloc[nextindex, 0]/nextgap) ) / 2
+                    prevval = st.session_state.userdata.iloc[previndex, col]
+                    nextval = st.session_state.userdata.iloc[nextindex, col]
 
-                    sidebar.write(prevgap)
-                    sidebar.write(interval)
+                    newval = (nextval + prevval) / 2
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
