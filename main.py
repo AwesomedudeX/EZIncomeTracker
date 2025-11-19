@@ -488,28 +488,73 @@ else:
 
     elif page == "Your Income Data":
 
-        showColsExpander = sidebar.expander("**Selected Columns**")
-        showCols = []
-
-
-        for col in st.session_state.userdata.columns:
-            
-            if showColsExpander.checkbox(col, value=True):
-                showCols.append(col)
-
-        st.session_state.userdata = cleanDF(st.session_state.userdata)
-
         if lendata == 0:
             st.subheader("Please add an entry before attempting to view your entries.")            
 
         else:
 
-            interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
+            showColsExpander = sidebar.expander("**Selected Columns**")
+            showCols = []
 
-            interpolationExpander.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the data would have been up to that month.")
+
+            for col in st.session_state.userdata.columns:
+                
+                if showColsExpander.checkbox(col, value=True):
+                    showCols.append(col)
+
+            st.session_state.userdata = cleanDF(st.session_state.userdata)
 
             startentry = sidebar.number_input("Starting Entry Number", 1, lendata, value=1)-1
             endentry = sidebar.number_input("Ending Entry Number", startentry, lendata, value=lendata)
+
+            interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
+
+            with interpolationExpander:
+
+                st.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the values for that month could have been based on your previous and following entry.")
+
+                intmonths = st.session_state.userdata["Month No."].astype(int)
+                maxval = intmonths.max()
+                missingmonths = []
+
+                for num in range(1, maxval):
+                    if num not in intmonths:
+                        missingmonths.append(num)
+
+                if len(missingmonths) == 0:
+                    st.success("**You don't have any missing data!**")
+
+                else:
+
+                    targetmonth = st.selectbox("**Target Month:**", missingmonths)
+                    targetindex = 0
+
+                    previndex = 0
+                    nextindex = 0
+
+                    prevmonth = 0
+                    nextmonth = 0
+
+                    for i in range(len(st.session_state.userdata)):
+                        
+                        if st.session_state.userdata.iloc[i, 0] == targetmonth:
+                            targetindex = i
+
+                        if st.session_state.userdata.iloc[i, 0] < targetmonth:
+                            previndex = i
+                            prevmonth = st.session_state.userdata.iloc[previndex, 0]
+
+                        if st.session_state.userdata.iloc[i, 0] > targetmonth and st.session_state.userdata.iloc[i, 0] < nextmonth:
+                            nextindex = i
+                            nextmonth = st.session_state.userdata.iloc[nextindex, 0]
+
+                    prevgap = targetmonth - prevmonth
+                    nextgap = nextmonth - targetmonth
+
+                    interval = ( (st.session_state.userdata.iloc[previndex, 0]/prevgap) + (st.session_state.userdata.iloc[nextindex, 0]/nextgap) ) / 2
+
+                    sidebar.write(prevgap)
+                    sidebar.write(interval)
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
