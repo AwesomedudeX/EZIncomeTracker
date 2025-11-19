@@ -127,6 +127,11 @@ if "userdata" not in st.session_state or "userid" not in st.session_state or "cu
 
 sidebar = st.sidebar
 
+if sidebar.button("Push to GitHub"):
+    os.system("git add .")
+    os.system("git commit -m \"Remote Update\"")
+    os.system("git push origin main")        
+
 st.sidebar.title(":green[EZ] Income Tracker")
 
 page = st.sidebar.radio("**Navigation:**", pages)
@@ -144,6 +149,7 @@ if page == "Home":
     st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with **all** of your income tracking needs, with **data management**, **analysis**, **visualization** and **prediction features** that make budgeting **quick**, **easy** and **secure**. Make sure to create entries **every month** for the **best** results.")
     st.write("**If you have used this website before**, upload your **`data.csv`** file from your **last session** to the box **below**. If this is your first time, head to the **`Add an Entry`** page to get started. Once you're done, make sure to **save your data** by hitting the **`Download Data`** button on the sidebar **to the left**.")
 
+    # REMOVE AFTER RELEASE
     datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type=["csv"])
 
     if datafile and st.button("Upload File"):
