@@ -178,6 +178,12 @@ else:
     monthindex = 0
     lendata = len(st.session_state.userdata)
 
+    for m in range(len(months)):
+            
+        if currentmonth == months[m]:
+            monthindex = m
+            break
+
     st.session_state.userdata = sortAccounts(st.session_state.userdata)    
 
     if lendata > 0:
@@ -223,11 +229,6 @@ else:
         except:
             monthno = c1.number_input("**Month No.**", min_value=1, step=1)
 
-        for m in range(len(months)):
-                
-            if currentmonth == months[m]:
-                monthindex = m
-                break
 
         month = c2.selectbox("**Month**", months, index=monthindex)
         year = c3.number_input("**Year**", currentyear, step=1)
@@ -535,6 +536,12 @@ else:
                     prevmonth = 1
                     nextmonth = maxval
 
+                    newvals = {}
+                    cols = [c for c in st.session_state.userdata.columns]
+
+                    newvals["Month"] = st.selectbox("**Month**", months, index=monthindex)
+                    newvals["Year"] = st.number_input("**Year**", currentyear, step=1)
+
                     for i in range(len(st.session_state.userdata)):
 
                         val = int(st.session_state.userdata.iloc[i, 0])
@@ -546,18 +553,25 @@ else:
                             previndex = i
                             prevmonth = st.session_state.userdata.iloc[previndex, 0]
 
-                        if  val > targetmonth and val < nextmonth:
+                        if val > targetmonth and nextmonth != 0:
                             nextindex = i
                             nextmonth = st.session_state.userdata.iloc[nextindex, 0]
-                            st.write(nextmonth)
 
                     prevgap = targetmonth - prevmonth
                     nextgap = nextmonth - targetmonth
 
-                    prevval = st.session_state.userdata.iloc[previndex, col]
-                    nextval = st.session_state.userdata.iloc[nextindex, col]
+                    newvals["Month No."] = targetmonth
 
-                    newval = (nextval + prevval) / 2
+                    for c in range(3, len(cols)):
+
+                        prevval = float(st.session_state.userdata.iloc[previndex, c])
+                        nextval = float(st.session_state.userdata.iloc[nextindex, c])
+
+                        # FIX WEIGHTINGS - TRY A LOOP THAT GETS THE AVERAGE FROM THE MIDDLE OUT
+                        newval = ( prevval / prevgap ) + ( nextval / nextgap )
+                        newvals[cols[c]] = newval
+
+                    st.write(newvals)
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
