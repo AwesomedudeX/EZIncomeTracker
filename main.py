@@ -559,16 +559,40 @@ else:
 
                     prevgap = targetmonth - prevmonth
                     nextgap = nextmonth - targetmonth
+                    totalgap = prevgap + nextgap
 
                     newvals["Month No."] = targetmonth
 
                     for c in range(3, len(cols)):
 
-                        prevval = float(st.session_state.userdata.iloc[previndex, c])
-                        nextval = float(st.session_state.userdata.iloc[nextindex, c])
+                        # ADD DATA INSERTION AFTER INTERPOLATION
 
-                        # FIX WEIGHTINGS - TRY A LOOP THAT GETS THE AVERAGE FROM THE MIDDLE OUT
-                        newval = ( prevval / prevgap ) + ( nextval / nextgap )
+                        if cols[c][-5:] == "(Tax)":
+
+                            # TEST TAX CALCULATION
+
+                            prevtax = float(st.session_state.userdata.iloc[previndex, c])
+                            nexttax = float(st.session_state.userdata.iloc[nextindex, c])
+
+                            revcol = cols[c][:-5]+"(Revenue)"
+
+                            prevrev = st.session_state.userdata.loc[previndex, revcol]
+                            nextrev = st.session_state.userdata.loc[nextindex, revcol]
+
+                            prevtaxrate = prevtax / prevrev
+                            nexttaxrate = nexttax / nextrev
+
+                            newtaxrate = prevtaxrate + ( (nexttaxrate - prevtaxrate) / totalgap * prevgap )
+                            newrev = newvals[revcol]
+                            newval = newvals[revcol] * newtaxrate
+
+                        else:
+
+                            prevval = float(st.session_state.userdata.iloc[previndex, c])
+                            nextval = float(st.session_state.userdata.iloc[nextindex, c])
+
+                            newval = prevval + ( (nextval - prevval) / totalgap * prevgap )
+
                         newvals[cols[c]] = newval
 
                     st.write(newvals)
