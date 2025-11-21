@@ -593,6 +593,9 @@ else:
 
                             newval = prevval + ( (nextval - prevval) / totalgap * prevgap )
 
+                        if isNum(str(newval)):
+                            newval = round(newval, 2)
+
                         newvals[cols[c]] = newval
 
                     st.write(newvals)
