@@ -84,10 +84,10 @@ def saveEntries(df, id):
 
         write = str(df.to_csv())
         open(f"data_{id}.csv", "w").write(write)
-        print(f"\nSaved {st.session_state.userid}'s data sucessfully.")
+        print(f"\nSaved User {id}'s data sucessfully.")
 
     except:
-        print(f"\nERROR: Could not save {st.session_state.userid}'s data.")
+        print(f"\nERROR: Could not save User {id}'s data.")
 
 def sortAccounts(df: pd.DataFrame):
 
@@ -141,6 +141,10 @@ if sidebar.button("Refresh Page"):
     sidebar.success("Page refreshed successfully!")
     
 if len(st.session_state.userdata) > 0:
+
+    if type(st.session_state.userdata) == dict:
+        st.session_state.userdata = pd.DataFrame().from_dict(st.session_state.userdata)
+
     st.session_state.userdata = cleanDF(st.session_state.userdata)
     download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
 
@@ -528,7 +532,6 @@ else:
                 else:
 
                     targetmonth = st.selectbox("**Target Month:**", missingmonths)
-                    targetindex = 0
 
                     previndex = 0
                     nextindex = 0
@@ -546,9 +549,6 @@ else:
 
                         val = int(st.session_state.userdata.iloc[i, 0])
                         
-                        if val == targetmonth:
-                            targetindex = i
-
                         if val < targetmonth:
                             previndex = i
                             prevmonth = st.session_state.userdata.iloc[previndex, 0]
@@ -565,16 +565,15 @@ else:
 
                     for c in range(3, len(cols)):
 
-                        # ADD DATA INSERTION AFTER INTERPOLATION
-
-                        if cols[c][-5:] == "(Tax)":
-
-                            # TEST TAX CALCULATION
+                        if cols[c][-5:] == "(Tax)" or cols[c] == "Total Tax":
 
                             prevtax = float(st.session_state.userdata.iloc[previndex, c])
                             nexttax = float(st.session_state.userdata.iloc[nextindex, c])
 
-                            revcol = cols[c][:-5]+"(Revenue)"
+                            if cols[c][-5:] == "(Tax)":
+                                revcol = cols[c][:-5]+"(Revenue)"
+                            else:
+                                revcol = "Total Revenue"
 
                             prevrev = st.session_state.userdata.loc[previndex, revcol]
                             nextrev = st.session_state.userdata.loc[nextindex, revcol]
@@ -598,7 +597,26 @@ else:
 
                         newvals[cols[c]] = newval
 
-                    st.write(newvals)
+                    data = {}
+
+                    for col in st.session_state.userdata:
+
+                        data[col] = [val for val in st.session_state.userdata[col]]
+                        data[col].insert(nextindex, newvals[col])
+                    
+                    if st.button("Add Interpolated Data"):
+
+                        # FIX THIS
+
+                        newdf = pd.DataFrame()
+
+                        for col in data:
+                            newdf[col] = data[col]
+
+                        saveEntries(newdf, st.session_state.userid)
+
+                        st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+                        st.session_state.userdata = cleanDF(st.session_state.userdata)
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
@@ -901,10 +919,10 @@ else:
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                     st.session_state.userdata = cleanDF(st.session_state.userdata)
 
-                    print(f"\nEntry saved sucessfully for User {st.session_state.userid}.")
+                    st.success(f"\nSaved the entry successfully.")
 
                 except:
-                    print(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
+                    st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
 
     elif page == "Visualize Your Data":
 
