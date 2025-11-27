@@ -606,8 +606,6 @@ else:
                     
                     if st.button("Add Interpolated Data"):
 
-                        # FIX THIS
-
                         newdf = pd.DataFrame()
 
                         for col in data:
@@ -617,6 +615,8 @@ else:
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                         st.session_state.userdata = cleanDF(st.session_state.userdata)
+
+                        st.success("Interpolated data added successfully. You may have to refresh the page for your data to update.")
 
             if showCols == []:
                 st.subheader("Please select a column to view.")
