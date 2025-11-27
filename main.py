@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 
 from sklearn.linear_model import LinearRegression as lreg
+from sklearn.model_selection import train_test_split as tts
 
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
@@ -116,7 +117,6 @@ def colSelector(defaultval: bool = True):
             showCols.append(col)
 
     return showCols
-    
 
 if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state:
 
@@ -952,16 +952,17 @@ else:
                 showCols = colSelector()
 
             st.dataframe(st.session_state.userdata[showCols])
+
+        if lendata > 1:
         
-        with c2:
+            with c2:
 
-            if userchoice == "Generate Graphs":
+                if userchoice == "Generate Graphs":
                     
-                with c2:
 
-                    st.header("Graph Display")
+                    with c2:
 
-                    if lendata > 1:
+                        st.header("Graph Display")
 
                         c2a, c2b, c2c, c2d = c2.columns(4)
                         
@@ -1021,9 +1022,31 @@ else:
                         
                         st.pyplot(fig)
 
-                    else:
-                        st.subheader("Please enter more than one entry to plot a graph of your data.")
+                else:
+                        
+                    if lendata > 1:
 
-            else:
+                        c2a, c2b = st.columns(2)
 
-                pass
+                        cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
+                        numcols = c2a.number_input("**Number of Columns to Use For Prediction:**", min_value=1, max_value=len(cols))
+                        xcols = []
+
+                        if numcols > 0:
+                            sidebar.header("Columns to Use For :green[Prediction]:")
+
+                        for i in range(numcols):
+
+                            col = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in cols])
+                            xcols.append(col)
+
+                        x = st.session_state.userdata[xcols]
+                        y = st.selectbox("**Column to Predict**", cols)
+
+                        xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+                        lr = lreg().fit(xtrain, ytrain)
+
+                        st.write(lr.predict(st.session_state.userdata[cols]))
+
+        else:
+            st.subheader("Please enter more than one entry to analyze your data.")
