@@ -14,7 +14,7 @@ requiredlibraries = [
     "sklearn"
 ]
 totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
-pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Visualize Your Data"]
+pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Analyze Your Data"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
@@ -104,6 +104,19 @@ def sortAccounts(df: pd.DataFrame):
     newdf = pd.DataFrame().from_dict(newdata)
     return cleanDF(newdf)
 
+def colSelector(defaultval: bool = True):
+    
+    showCols = []
+
+    selectall = st.checkbox("Select All", value=defaultval)
+
+    for col in st.session_state.userdata.columns:
+        
+        if st.checkbox(col, value=selectall):
+            showCols.append(col)
+
+    return showCols
+    
 
 if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state:
 
@@ -434,7 +447,7 @@ else:
 
         st.write("---")
         st.header("Entry Preview")
-        st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+        st.dataframe(totalvalsstr, hide_index=True, width="stretch")
 
         if sidebar.button("Add an Entry"):
                 
@@ -499,13 +512,9 @@ else:
         else:
 
             showColsExpander = sidebar.expander("**Selected Columns**")
-            showCols = []
 
-
-            for col in st.session_state.userdata.columns:
-                
-                if showColsExpander.checkbox(col, value=True):
-                    showCols.append(col)
+            with showColsExpander:
+                showCols = colSelector()
 
             st.session_state.userdata = cleanDF(st.session_state.userdata)
 
@@ -623,9 +632,9 @@ else:
 
             else:
 
-                st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], use_container_width=True, hide_index=True)
+                st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], width="stretch", hide_index=True)
 
-                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
+                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", width="stretch"):
                     
                     newdata = {}
 
@@ -887,7 +896,7 @@ else:
 
             st.write("---")
             st.header("Entry Preview")
-            st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+            st.dataframe(totalvalsstr, hide_index=True, width="stretch")
 
             if sidebar.button("Save Entry"):
                     
@@ -924,62 +933,97 @@ else:
                 except:
                     st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
 
-    elif page == "Visualize Your Data":
+    elif page == "Analyze Your Data":
 
-        if lendata > 1:
-            
-            cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
-            monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
+        st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. To get started, just select what you want to do **below**:")
 
-            if len(cols) < 10:
-                maxcols = len(cols)
+        userchoice = st.radio("**What do you want to do?**", ["Generate Graphs", "Predict Data"])
+
+        st.write("---")
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            st.header("Your Data")
+            showColsExpander = sidebar.expander("**Columns to Display**")
+
+            with showColsExpander:
+                showCols = colSelector()
+
+            st.dataframe(st.session_state.userdata[showCols])
+        
+        with c2:
+
+            if userchoice == "Generate Graphs":
+                    
+                with c2:
+
+                    st.header("Graph Display")
+
+                    if lendata > 1:
+
+                        c2a, c2b, c2c, c2d = c2.columns(4)
+                        
+                        cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
+                        monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
+
+                        if len(cols) < 10:
+                            maxcols = len(cols)
+                        else:
+                            maxcols = 10
+
+                        gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
+                        gtype = c2a.selectbox("**Graph Type:**", gtypes)
+                        numcols = c2b.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
+
+                        startentry = c2c.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
+                        endentry = c2d.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
+
+                        x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+
+                        darkbg = sidebar.checkbox("Graph Dark Mode", value=True)
+
+                        if darkbg:
+                            plt.style.use("dark_background")
+                        else:
+                            plt.style.use("classic")
+
+                        fig, ax = plt.subplots()
+                        ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
+
+                        plt.xlabel("Month No.")
+                        plt.ylabel(f"Amount ($)")
+
+                        selectedcols = []
+
+                        if numcols > 0:
+                            sidebar.header("Columns to :green[Plot]:")
+
+                        for i in range(numcols):
+
+                            selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
+                            y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
+
+                            selectedcols.append(selectedcol)
+                            
+                            if gtype == "Scatter Plot":
+                                sn.scatterplot(x=x, y=y)
+
+                            elif gtype == "Line Plot":
+                                sn.lineplot(x=x, y=y)
+
+                            elif gtype == "Linear Regression Plot":
+                                sn.regplot(x=x, y=y)
+
+                            elif gtype == "Bar Plot":
+                                sn.barplot(x=x, y=y)
+                        
+                        st.pyplot(fig)
+
+                    else:
+                        st.subheader("Please enter more than one entry to plot a graph of your data.")
+
             else:
-                maxcols = 10
 
-            gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
-            gtype = sidebar.selectbox("**Graph Type:**", gtypes)
-            numcols = sidebar.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
-
-            startentry = sidebar.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
-            endentry = sidebar.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
-
-            x = list(st.session_state.userdata["Month No."])[startentry:endentry]
-
-            darkbg = sidebar.checkbox("Dark Mode", value=True)
-
-            if darkbg:
-                plt.style.use("dark_background")
-            else:
-                plt.style.use("classic")
-
-            fig, ax = plt.subplots()
-            ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
-
-            plt.xlabel("Month No.")
-            plt.ylabel(f"Amount ($)")
-
-            selectedcols = []
-
-            for i in range(numcols):
-
-                selectedcol = sidebar.selectbox(f"Column {i+1}:", [col for col in cols if col not in selectedcols])
-                y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
-
-                selectedcols.append(selectedcol)
-                
-                if gtype == "Scatter Plot":
-                    sn.scatterplot(x=x, y=y)
-
-                elif gtype == "Line Plot":
-                    sn.lineplot(x=x, y=y)
-
-                elif gtype == "Linear Regression Plot":
-                    sn.regplot(x=x, y=y)
-
-                elif gtype == "Bar Plot":
-                    sn.barplot(x=x, y=y)
-            
-            st.pyplot(fig)
-
-        else:
-            st.subheader("Please enter more than one entry to plot a graph of your data.")
+                pass
