@@ -447,7 +447,7 @@ else:
 
         st.write("---")
         st.header("Entry Preview")
-        st.dataframe(totalvalsstr, hide_index=True, width="stretch")
+        st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
         if sidebar.button("Add an Entry"):
                 
@@ -517,9 +517,6 @@ else:
                 showCols = colSelector()
 
             st.session_state.userdata = cleanDF(st.session_state.userdata)
-
-            startentry = sidebar.number_input("Starting Entry Number", 1, lendata, value=1)-1
-            endentry = sidebar.number_input("Ending Entry Number", startentry, lendata, value=lendata)
 
             interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
 
@@ -624,6 +621,8 @@ else:
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                         st.session_state.userdata = cleanDF(st.session_state.userdata)
+                    
+                        lendata = len(st.session_state.userdata)
 
                         st.success("Interpolated data added successfully. You may have to refresh the page for your data to update.")
 
@@ -632,9 +631,19 @@ else:
 
             else:
 
-                st.dataframe(st.session_state.userdata[showCols].iloc[startentry:endentry], width="stretch", hide_index=True)
+                startentry = sidebar.number_input("Starting Entry Number", 1, lendata, value=1)-1
+                endentry = sidebar.number_input("Ending Entry Number", startentry, lendata, value=lendata)
+                
+                displaydf = pd.DataFrame()
 
-                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", width="stretch"):
+                displaydf["Entry No."] = [i+1 for i in range(endentry-startentry)]
+
+                for col in showCols:
+                    displaydf[col] = st.session_state.userdata[col].iloc[startentry:endentry]                    
+
+                st.dataframe(displaydf, use_container_width=True, hide_index=True)
+
+                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
                     
                     newdata = {}
 
@@ -896,7 +905,7 @@ else:
 
             st.write("---")
             st.header("Entry Preview")
-            st.dataframe(totalvalsstr, hide_index=True, width="stretch")
+            st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
             if sidebar.button("Save Entry"):
                     
@@ -938,115 +947,200 @@ else:
         st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. To get started, just select what you want to do **below**:")
 
         userchoice = st.radio("**What do you want to do?**", ["Generate Graphs", "Predict Data"])
+        layout = st.radio("**Viewing Layout:**", ["Vertical", "Horizontal"])
 
         st.write("---")
+        
+        if lendata > 1:
 
-        c1, c2 = st.columns(2)
+            if layout == "Vertical":
 
-        with c1:
+                c1 = False
+                c2 = False
 
-            st.header("Your Data")
-            showColsExpander = sidebar.expander("**Columns to Display**")
+            else:
+
+                c1, c2, c3 = st.columns([10, 80, 10])
+
+                c2.header("Divider Position (% towards the right side of the screen)")
+                divamount = c2.slider("Divider Position", min_value=10, max_value=90, value=50, label_visibility="collapsed")
+
+                if divamount < 10:
+                    divamount = 10
+
+                if divamount > 90:
+                    divamount = 90
+
+                st.write("---")
+
+                c1, c2 = st.columns([divamount, 100-divamount])
+
+            showColsExpander = sidebar.expander("**Dataset Columns to Show**")
 
             with showColsExpander:
                 showCols = colSelector()
-
-            st.dataframe(st.session_state.userdata[showCols])
-
-        if lendata > 1:
         
-            with c2:
+            if userchoice == "Generate Graphs":
 
-                if userchoice == "Generate Graphs":
+                cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
+                monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
+
+                if len(cols) < 10:
+                    maxcols = len(cols)
+                else:
+                    maxcols = 10
+
+                gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
+                gtype = sidebar.selectbox("**Graph Type:**", gtypes)
+                numcols = sidebar.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
+
+                startentry = sidebar.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
+                endentry = sidebar.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
+
+                x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+
+                darkbg = sidebar.checkbox("Graph Dark Mode", value=True)
+
+                if darkbg:
+                    plt.style.use("dark_background")
+                else:
+                    plt.style.use("classic")
+
+                fig, ax = plt.subplots()
+                ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
+
+                plt.xlabel("Month No.")
+                plt.ylabel(f"Amount ($)")
+
+                selectedcols = []
+
+                if numcols > 0:
+                    sidebar.header("Columns to :green[Plot]:")
+
+                for i in range(numcols):
+
+                    selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
+                    y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
+
+                    selectedcols.append(selectedcol)
                     
+                    if gtype == "Scatter Plot":
+                        sn.scatterplot(x=x, y=y)
 
-                    with c2:
+                    elif gtype == "Line Plot":
+                        sn.lineplot(x=x, y=y)
 
-                        st.header("Graph Display")
+                    elif gtype == "Linear Regression Plot":
+                        sn.regplot(x=x, y=y)
 
-                        c2a, c2b, c2c, c2d = c2.columns(4)
+                    elif gtype == "Bar Plot":
+                        sn.barplot(x=x, y=y)
+                
+                if c2:
+                    c2.header("Graph Display")
+                    c2.pyplot(fig)
+                else:
+                    st.header("Graph Display")
+                    st.pyplot(fig)
+
+            else:
+                
+                cols = st.session_state.userdata.columns
+                ycols = [c for c in cols if c not in totaltitles]
+
+                predmonth = sidebar.number_input("**Month to Predict**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
+
+                x = st.session_state.userdata["Month No."]
+                y = st.session_state.userdata[ycols]
+
+                xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+                xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+                lr = lreg().fit(xtrain, ytrain)
+
+                pred = lr.predict([[predmonth]])
+                preddict = {}
+
+                preddict["Month No."] = [predmonth]
+                preddict["Month"] = ["N/A"]
+                preddict["Year"] = ["N/A"]
+
+                for title in totaltitles:
+                    if title not in ["Month No.", "Month", "Year"]:
+                        preddict[title] = 0                 
+
+
+                for i in range(len(ycols)):
+                    preddict[ycols[i]] = round(pred[0][i], 2)
+
+                for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+
+                    preddict[col] = [preddict[col]]
+
+                    if col[-9:] == "(Revenue)":
+                        preddict["Total Revenue"][0] += preddict[col][0]
+
+                    if col[-9:] == "(Expense)":
+                        preddict["Total Expenses"][0] += preddict[col][0]
                         
-                        cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
-                        monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
+                    if col[-5:] == "(Tax)":
+                        preddict["Total Tax"][0] += preddict[col][0]
 
-                        if len(cols) < 10:
-                            maxcols = len(cols)
-                        else:
-                            maxcols = 10
+                preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
 
-                        gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
-                        gtype = c2a.selectbox("**Graph Type:**", gtypes)
-                        numcols = c2b.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
+                preddf = pd.DataFrame.from_dict(preddict)
 
-                        startentry = c2c.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
-                        endentry = c2d.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
-
-                        x = list(st.session_state.userdata["Month No."])[startentry:endentry]
-
-                        darkbg = sidebar.checkbox("Graph Dark Mode", value=True)
-
-                        if darkbg:
-                            plt.style.use("dark_background")
-                        else:
-                            plt.style.use("classic")
-
-                        fig, ax = plt.subplots()
-                        ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
-
-                        plt.xlabel("Month No.")
-                        plt.ylabel(f"Amount ($)")
-
-                        selectedcols = []
-
-                        if numcols > 0:
-                            sidebar.header("Columns to :green[Plot]:")
-
-                        for i in range(numcols):
-
-                            selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
-                            y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
-
-                            selectedcols.append(selectedcol)
-                            
-                            if gtype == "Scatter Plot":
-                                sn.scatterplot(x=x, y=y)
-
-                            elif gtype == "Line Plot":
-                                sn.lineplot(x=x, y=y)
-
-                            elif gtype == "Linear Regression Plot":
-                                sn.regplot(x=x, y=y)
-
-                            elif gtype == "Bar Plot":
-                                sn.barplot(x=x, y=y)
-                        
-                        st.pyplot(fig)
+                if c2:
+                    c2.header("Data Prediction")
+                    c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
 
                 else:
+                    st.header("Data Prediction")
+                    st.dataframe(preddf, use_container_width=True, hide_index=True)
+
+                if sidebar.button("Add Predicted Entry"):
                         
-                    if lendata > 1:
+                    try:
+                    
+                        data = {}
 
-                        c2a, c2b = st.columns(2)
+                        for col in st.session_state.userdata.columns:
 
-                        cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
-                        numcols = c2a.number_input("**Number of Columns to Use For Prediction:**", min_value=1, max_value=len(cols))
-                        xcols = []
+                            data[col] = []
 
-                        if numcols > 0:
-                            sidebar.header("Columns to Use For :green[Prediction]:")
+                            for val in st.session_state.userdata[col]:
+                                data[col].append(val)
 
-                        for i in range(numcols):
+                            if isNum(preddict[col][0]):
+                                newval = round(preddict[col][0], 2)
+                            else:
+                                newval = preddict[col][0]
 
-                            col = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in cols])
-                            xcols.append(col)
+                            data[col].append(newval)
 
-                        x = st.session_state.userdata[xcols]
-                        y = st.selectbox("**Column to Predict**", cols)
 
-                        xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
-                        lr = lreg().fit(xtrain, ytrain)
+                        data = cleanData(data)
+                        newdf = pd.DataFrame().from_dict(data)
+                        saveEntries(newdf, st.session_state.userid)
 
-                        st.write(lr.predict(st.session_state.userdata[cols]))
+                        print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
+
+                    except:
+                        print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
+
+                    st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+                    st.session_state.userdata = cleanDF(st.session_state.userdata)
+
+                    sidebar.success("Entry created successfully.")
+
+
+            if c1:
+                c1.header("Your Data")
+                c1.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)
+
+            else:
+                st.write("---")
+                st.header("Your Data")
+                st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
 
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
