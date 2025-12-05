@@ -1,4 +1,4 @@
-# CURRENT TASK: Add data interpolation
+# CURRENT TASK: Add predicted curve graphing
 
 import streamlit as st
 
@@ -962,7 +962,7 @@ else:
 
                 c1, c2, c3 = st.columns([10, 80, 10])
 
-                c2.header("Divider Position (% towards the right side of the screen)")
+                c2.subheader("Divider Position (% towards the right side of the screen)")
                 divamount = c2.slider("Divider Position", min_value=10, max_value=90, value=50, label_visibility="collapsed")
 
                 if divamount < 10:
@@ -1048,89 +1048,94 @@ else:
                 cols = st.session_state.userdata.columns
                 ycols = [c for c in cols if c not in totaltitles]
 
-                predmonth = sidebar.number_input("**Month to Predict**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
-
-                x = st.session_state.userdata["Month No."]
-                y = st.session_state.userdata[ycols]
-
-                xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
-                xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-                lr = lreg().fit(xtrain, ytrain)
-
-                pred = lr.predict([[predmonth]])
-                preddict = {}
-
-                preddict["Month No."] = [predmonth]
-                preddict["Month"] = ["N/A"]
-                preddict["Year"] = ["N/A"]
-
-                for title in totaltitles:
-                    if title not in ["Month No.", "Month", "Year"]:
-                        preddict[title] = 0                 
-
-
-                for i in range(len(ycols)):
-                    preddict[ycols[i]] = round(pred[0][i], 2)
-
-                for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
-
-                    preddict[col] = [preddict[col]]
-
-                    if col[-9:] == "(Revenue)":
-                        preddict["Total Revenue"][0] += preddict[col][0]
-
-                    if col[-9:] == "(Expense)":
-                        preddict["Total Expenses"][0] += preddict[col][0]
-                        
-                    if col[-5:] == "(Tax)":
-                        preddict["Total Tax"][0] += preddict[col][0]
-
-                preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
-
-                preddf = pd.DataFrame.from_dict(preddict)
-
-                if c2:
-                    c2.header("Data Prediction")
-                    c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+                if len(ycols) == 0:
+                    st.subheader("Please add accounts to your entries to predict account data.")
 
                 else:
-                    st.header("Data Prediction")
-                    st.dataframe(preddf, use_container_width=True, hide_index=True)
 
-                if sidebar.button("Add Predicted Entry"):
+                    predmonth = sidebar.number_input("**Month to Predict**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
+
+                    x = st.session_state.userdata["Month No."]
+                    y = st.session_state.userdata[ycols]
+
+                    xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+                    xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+                    lr = lreg().fit(xtrain, ytrain)
+
+                    pred = lr.predict([[predmonth]])
+                    preddict = {}
+
+                    preddict["Month No."] = [predmonth]
+                    preddict["Month"] = ["N/A"]
+                    preddict["Year"] = ["N/A"]
+
+                    for title in totaltitles:
+                        if title not in ["Month No.", "Month", "Year"]:
+                            preddict[title] = 0                 
+
+
+                    for i in range(len(ycols)):
+                        preddict[ycols[i]] = round(pred[0][i], 2)
+
+                    for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+
+                        preddict[col] = [preddict[col]]
+
+                        if col[-9:] == "(Revenue)":
+                            preddict["Total Revenue"][0] += preddict[col][0]
+
+                        if col[-9:] == "(Expense)":
+                            preddict["Total Expenses"][0] += preddict[col][0]
+                            
+                        if col[-5:] == "(Tax)":
+                            preddict["Total Tax"][0] += preddict[col][0]
+
+                    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+
+                    preddf = pd.DataFrame.from_dict(preddict)
+
+                    if c2:
+                        c2.header("Data Prediction")
+                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+
+                    else:
+                        st.header("Data Prediction")
+                        st.dataframe(preddf, use_container_width=True, hide_index=True)
+
+                    if sidebar.button("Add Predicted Entry"):
+                            
+                        try:
                         
-                    try:
-                    
-                        data = {}
+                            data = {}
 
-                        for col in st.session_state.userdata.columns:
+                            for col in st.session_state.userdata.columns:
 
-                            data[col] = []
+                                data[col] = []
 
-                            for val in st.session_state.userdata[col]:
-                                data[col].append(val)
+                                for val in st.session_state.userdata[col]:
+                                    data[col].append(val)
 
-                            if isNum(preddict[col][0]):
-                                newval = round(preddict[col][0], 2)
-                            else:
-                                newval = preddict[col][0]
+                                if isNum(preddict[col][0]):
+                                    newval = round(preddict[col][0], 2)
+                                else:
+                                    newval = preddict[col][0]
 
-                            data[col].append(newval)
+                                data[col].append(newval)
 
 
-                        data = cleanData(data)
-                        newdf = pd.DataFrame().from_dict(data)
-                        saveEntries(newdf, st.session_state.userid)
+                            data = cleanData(data)
+                            newdf = pd.DataFrame().from_dict(data)
+                            saveEntries(newdf, st.session_state.userid)
 
-                        print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
+                            print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
 
-                    except:
-                        print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
+                        except:
+                            print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
-                    st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                    st.session_state.userdata = cleanDF(st.session_state.userdata)
+                        st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+                        st.session_state.userdata = cleanDF(st.session_state.userdata)
 
-                    sidebar.success("Entry created successfully.")
+                        sidebar.success("Entry created successfully.")
 
 
             if c1:
