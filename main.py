@@ -1,4 +1,4 @@
-# CURRENT TASK: Add predicted curve graphing
+# CURRENT TASK: Add predicted curve graphing and ADD USER ID ADDITION TO FILE UPLOADING
 
 import streamlit as st
 
@@ -944,7 +944,7 @@ else:
 
     elif page == "Analyze Your Data":
 
-        st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. To get started, just select what you want to do **below**:")
+        st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. Before you begin, it's **highly recommended** that you ensure there is **no missing data**, or any missing data has been **interpolated** on the **Your Income Data** page. To get started, just select what you want to do **below**:")
 
         userchoice = st.radio("**What do you want to do?**", ["Generate Graphs", "Predict Data"])
         layout = st.radio("**Viewing Layout:**", ["Vertical", "Horizontal"])
@@ -979,6 +979,12 @@ else:
 
             with showColsExpander:
                 showCols = colSelector()
+
+            displaydata = pd.DataFrame()
+            displaydata["Entry No."] = [i+1 for i in range(len(st.session_state.userdata["Month No."]))]
+
+            for col in showCols:
+                displaydata[col] = st.session_state.userdata[col]
         
             if userchoice == "Generate Graphs":
 
@@ -1053,10 +1059,13 @@ else:
 
                 else:
 
-                    predmonth = sidebar.number_input("**Month to Predict**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
+                    predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
+                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
+                    startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
+                    endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
 
-                    x = st.session_state.userdata["Month No."]
-                    y = st.session_state.userdata[ycols]
+                    x = st.session_state.userdata["Month No."][startentry-1:endentry]
+                    y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
 
                     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
                     xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
@@ -1139,8 +1148,9 @@ else:
 
 
             if c1:
+                
                 c1.header("Your Data")
-                c1.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)
+                c1.dataframe(displaydata, use_container_width=True, hide_index=True)
 
             else:
                 st.write("---")
