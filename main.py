@@ -174,8 +174,24 @@ if page == "Home":
         try:
 
             df = pd.read_csv(datafile)
+            lendata = len(st.session_state.userdata)
 
             st.success("Data file uploaded successfully!")
+
+            if st.session_state.userid not in st.session_state.currentids and lendata > 0:
+
+                import users
+
+                st.session_state.currentids = users.userids
+                st.session_state.userid = st.session_state.currentids[-1] + 1
+                st.session_state.currentids.append(st.session_state.userid)
+                write = f"userids = {st.session_state.currentids}"
+
+                try:
+                    open("users.py", "w").write(write)
+                    print(f"\nAdded User {st.session_state.userid} successfully and saved IDs to file.")
+                except:
+                    print(f"\nCould not add User {st.session_state.userid}.")
 
             df = cleanDF(df)
             st.session_state.userdata = df
@@ -1000,12 +1016,11 @@ else:
                 gtype = sidebar.selectbox("**Graph Type:**", gtypes)
                 numcols = sidebar.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
 
-                startentry = sidebar.number_input("**Starting Entry:**", min_value=1, max_value=lendata-1)-1
-                endentry = sidebar.number_input("**Ending Entry:**", min_value=startentry, max_value=lendata, value=lendata)
-
-                x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+                startentry = sidebar.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)-1
+                endentry = sidebar.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
 
                 darkbg = sidebar.checkbox("Graph Dark Mode", value=True)
+                predictdata = sidebar.checkbox("Graph Predicted Data", value=False)
 
                 if darkbg:
                     plt.style.use("dark_background")
@@ -1023,10 +1038,65 @@ else:
                 if numcols > 0:
                     sidebar.header("Columns to :green[Plot]:")
 
+                x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+
                 for i in range(numcols):
 
                     selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
                     y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
+
+                    # COMPLETE THIS PART
+                    if predictdata and len(ycols) == 0:
+                        st.subheader("Please add accounts to your entries to predict account data.")
+                    
+                    elif predictdata:
+                    
+                        cols = st.session_state.userdata.columns
+                        ycols = [c for c in cols if c not in totaltitles]
+
+                        predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
+                        predmonth = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=10)
+                        startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
+                        endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
+
+                        x = st.session_state.userdata["Month No."][startentry-1:endentry]
+                        y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
+
+                        xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+                        xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+                        lr = lreg().fit(xtrain, ytrain)
+
+                        pred = lr.predict([[predmonth]])
+                        preddict = {}
+
+                        preddict["Month No."] = [predmonth]
+                        preddict["Month"] = ["N/A"]
+                        preddict["Year"] = ["N/A"]
+
+                        for title in totaltitles:
+                            if title not in ["Month No.", "Month", "Year"]:
+                                preddict[title] = 0                 
+
+
+                        for i in range(len(ycols)):
+                            preddict[ycols[i]] = round(pred[0][i], 2)
+
+                        for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+
+                            preddict[col] = [preddict[col]]
+
+                            if col[-9:] == "(Revenue)":
+                                preddict["Total Revenue"][0] += preddict[col][0]
+
+                            if col[-9:] == "(Expense)":
+                                preddict["Total Expenses"][0] += preddict[col][0]
+                                
+                            if col[-5:] == "(Tax)":
+                                preddict["Total Tax"][0] += preddict[col][0]
+
+                        preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+
+                        preddf = pd.DataFrame.from_dict(preddict)
 
                     selectedcols.append(selectedcol)
                     
