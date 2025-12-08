@@ -1013,19 +1013,22 @@ else:
                     maxcols = 10
 
                 gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
-                gtype = sidebar.selectbox("**Graph Type:**", gtypes)
-                numcols = sidebar.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
 
-                startentry = sidebar.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)-1
-                endentry = sidebar.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
+                with sidebar.expander("**Graph Settings**"):
 
-                darkbg = sidebar.checkbox("Graph Dark Mode", value=True)
-                predictdata = sidebar.checkbox("Graph Predicted Data", value=False)
+                    darkbg = st.checkbox("Graph Dark Mode", value=True)
+                    predictdata = st.checkbox("Graph Predicted Data", value=False)
 
-                if darkbg:
-                    plt.style.use("dark_background")
-                else:
-                    plt.style.use("classic")
+                    if darkbg:
+                        plt.style.use("dark_background")
+                    else:
+                        plt.style.use("classic")
+
+                    gtype = st.selectbox("**Graph Type:**", gtypes)
+                    numcols = st.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
+
+                    startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)-1
+                    endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
 
                 fig, ax = plt.subplots()
                 ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
@@ -1035,68 +1038,71 @@ else:
 
                 selectedcols = []
 
-                if numcols > 0:
-                    sidebar.header("Columns to :green[Plot]:")
+                x = st.session_state.userdata["Month No."].iloc[startentry:endentry]
+                cols = st.session_state.userdata.columns
+                ycols = [c for c in cols if c not in totaltitles]
 
-                x = list(st.session_state.userdata["Month No."])[startentry:endentry]
+                if predictdata and len(ycols) == 0:
+                    st.subheader("Please add accounts to your entries to predict account data.")
+                
+                elif predictdata:
+    
+                    # COMPLETE THIS PART
+                
+                    predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
+                    predmonths = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
+
+                    y = st.session_state.userdata[ycols].iloc[startentry:endentry]
+
+                    xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+                    xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+                    
+                    lr = lreg().fit(xtrain, ytrain)
+                    pred = []
+                    preddict = {}
+
+                    for i in range(predmonths):
+                        predx = [[i+lendata] for m in range(predmonths)]
+                        predy = lr.predict(predx)
+                        pred.append(predy)
+
+                    preddict["Month No."] = [predmonths]
+                    preddict["Month"] = ["N/A"]
+                    preddict["Year"] = ["N/A"]
+
+                    for title in totaltitles:
+                        if title not in ["Month No.", "Month", "Year"]:
+                            preddict[title] = 0                 
+
+                    for i in range(len(ycols)):
+                        for p in pred[0][0]:
+                            preddict[ycols[i]] = round(p, 2)
+
+                    for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+
+                        preddict[col] = [preddict[col]]
+
+                        if col[-9:] == "(Revenue)":
+                            preddict["Total Revenue"][0] += preddict[col][0]
+
+                        if col[-9:] == "(Expense)":
+                            preddict["Total Expenses"][0] += preddict[col][0]
+                            
+                        if col[-5:] == "(Tax)":
+                            preddict["Total Tax"][0] += preddict[col][0]
+
+                    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+
+                    y = pd.DataFrame.from_dict(preddict)
+
+                    st.write(y)
+
+                sidebar.header("Columns to :green[Plot]:")
 
                 for i in range(numcols):
 
                     selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
                     y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
-
-                    # COMPLETE THIS PART
-                    if predictdata and len(ycols) == 0:
-                        st.subheader("Please add accounts to your entries to predict account data.")
-                    
-                    elif predictdata:
-                    
-                        cols = st.session_state.userdata.columns
-                        ycols = [c for c in cols if c not in totaltitles]
-
-                        predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
-                        predmonth = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=10)
-                        startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
-                        endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
-
-                        x = st.session_state.userdata["Month No."][startentry-1:endentry]
-                        y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
-
-                        xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
-                        xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-                        lr = lreg().fit(xtrain, ytrain)
-
-                        pred = lr.predict([[predmonth]])
-                        preddict = {}
-
-                        preddict["Month No."] = [predmonth]
-                        preddict["Month"] = ["N/A"]
-                        preddict["Year"] = ["N/A"]
-
-                        for title in totaltitles:
-                            if title not in ["Month No.", "Month", "Year"]:
-                                preddict[title] = 0                 
-
-
-                        for i in range(len(ycols)):
-                            preddict[ycols[i]] = round(pred[0][i], 2)
-
-                        for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
-
-                            preddict[col] = [preddict[col]]
-
-                            if col[-9:] == "(Revenue)":
-                                preddict["Total Revenue"][0] += preddict[col][0]
-
-                            if col[-9:] == "(Expense)":
-                                preddict["Total Expenses"][0] += preddict[col][0]
-                                
-                            if col[-5:] == "(Tax)":
-                                preddict["Total Tax"][0] += preddict[col][0]
-
-                        preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
-
-                        preddf = pd.DataFrame.from_dict(preddict)
 
                     selectedcols.append(selectedcol)
                     
