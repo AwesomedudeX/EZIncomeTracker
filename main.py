@@ -1043,11 +1043,11 @@ else:
                 predmonths = 0
 
                 x = st.session_state.userdata["Month No."].iloc[startentry-1:endentry]
-                y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
+                y = st.session_state.userdata[[c for c in cols if c not in ["Month No.", "Month", "Year"]]].iloc[startentry-1:endentry]
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
-                
+
                 elif predictdata:
     
                     # FIX THIS
@@ -1057,18 +1057,15 @@ else:
 
                     y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
 
-                    st.write(x)
-                    st.write(y)
-
                     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
                     xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
                     lr = lreg().fit(xtrain, ytrain)
 
-                    predmonths = [[i+endentry] for i in range(predmonthamount)]
+                    predmonths = [[i+1+endentry] for i in range(predmonthamount)]
                     pred = lr.predict(predmonths)
                     preddict = {}
 
-                    preddict["Month No."] = [m for m in predmonths]
+                    preddict["Month No."] = [m[0] for m in predmonths]
                     preddict["Month"] = ["N/A" for m in predmonths]
                     preddict["Year"] = ["N/A" for m in predmonths]
 
@@ -1077,68 +1074,71 @@ else:
                             preddict[title] = [0 for m in predmonths]                 
 
 
-                    for i in range(len(ycols)):
-                        preddict[ycols[i]] = round(pred[0][i], 2)
+                    for c in range(len(ycols)):
+
+                        predcol = []
+
+                        for i in range(len(pred)):
+                            predcol.append(round(pred[i][c], 2))
+
+                        preddict[ycols[c]] = predcol
 
                     for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
 
-                        preddict[col] = [preddict[col]]
+                        for i in range(len(preddict[col])):
 
-                        if col[-9:] == "(Revenue)":
-                            preddict["Total Revenue"][0] += preddict[col][0]
+                            if col[-9:] == "(Revenue)":
+                                preddict["Total Revenue"][i] += preddict[col][i]
 
-                        if col[-9:] == "(Expense)":
-                            preddict["Total Expenses"][0] += preddict[col][0]
-                            
-                        if col[-5:] == "(Tax)":
-                            preddict["Total Tax"][0] += preddict[col][0]
+                            if col[-9:] == "(Expense)":
+                                preddict["Total Expenses"][i] += preddict[col][i]
+                                
+                            if col[-5:] == "(Tax)":
+                                preddict["Total Tax"][i] += preddict[col][i]
 
-                    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+                        for i in range(len(preddict[col])):
+                            preddict["Net Income"][i] += (preddict["Total Revenue"][i] - preddict["Total Tax"][i] - preddict["Total Expenses"][i])
+
 
                     preddf = pd.DataFrame.from_dict(preddict)
 
                     if c2:
                         c2.header("Data Prediction")
-                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+                        c2.dataframe(preddf, use_container_width=True, hide_index=True)
 
                     else:
                         st.header("Data Prediction")
                         st.dataframe(preddf, use_container_width=True, hide_index=True)
 
-                    if sidebar.button("Add Predicted Entry"):
-                            
-                        try:
-                        
-                            data = {}
+                                                    
+                    data = {}
 
-                            for col in st.session_state.userdata.columns:
+                    for col in st.session_state.userdata.columns:
 
-                                data[col] = []
+                        data[col] = []
 
-                                for val in st.session_state.userdata[col]:
-                                    data[col].append(val)
+                        for val in st.session_state.userdata[col]:
+                            data[col].append(val)
 
-                                if isNum(preddict[col][0]):
-                                    newval = round(preddict[col][0], 2)
-                                else:
-                                    newval = preddict[col][0]
+                        for val in preddict[col]:
 
-                                data[col].append(newval)
+                            if isNum(val):
+                                newval = round(val, 2)
+                            else:
+                                newval = val
+
+                        data[col].append(newval)
 
 
-                            data = cleanData(data)
-                            newdf = pd.DataFrame().from_dict(data)
-                            saveEntries(newdf, st.session_state.userid)
+                    st.write(preddict)
 
-                            print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
-
-                        except:
-                            print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
+                    data = cleanData(data)
+                    y = pd.DataFrame().from_dict(data)
 
                 sidebar.header("Columns to :green[Plot]:")
 
-                if predmonths:
-                    endentry += predmonths
+                if predictdata:
+                    endentry += predmonthamount
 
                 for i in range(numcols):
 
