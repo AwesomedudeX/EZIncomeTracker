@@ -1027,7 +1027,7 @@ else:
                     gtype = st.selectbox("**Graph Type:**", gtypes)
                     numcols = st.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
 
-                    startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)-1
+                    startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)
                     endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
 
                 fig, ax = plt.subplots()
@@ -1038,45 +1038,47 @@ else:
 
                 selectedcols = []
 
-                x = st.session_state.userdata["Month No."].iloc[startentry:endentry]
                 cols = st.session_state.userdata.columns
                 ycols = [c for c in cols if c not in totaltitles]
+                predmonths = 0
+
+                x = st.session_state.userdata["Month No."].iloc[startentry-1:endentry]
+                y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
                 
                 elif predictdata:
     
-                    # COMPLETE THIS PART
+                    # FIX THIS
                 
                     predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
-                    predmonths = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
+                    predmonthamount = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
 
-                    y = st.session_state.userdata[ycols].iloc[startentry:endentry]
+                    y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
+
+                    st.write(x)
+                    st.write(y)
 
                     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
                     xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-                    
                     lr = lreg().fit(xtrain, ytrain)
-                    pred = []
+
+                    predmonths = [[i+endentry] for i in range(predmonthamount)]
+                    pred = lr.predict(predmonths)
                     preddict = {}
 
-                    for i in range(predmonths):
-                        predx = [[i+lendata] for m in range(predmonths)]
-                        predy = lr.predict(predx)
-                        pred.append(predy)
-
-                    preddict["Month No."] = [predmonths]
-                    preddict["Month"] = ["N/A"]
-                    preddict["Year"] = ["N/A"]
+                    preddict["Month No."] = [m for m in predmonths]
+                    preddict["Month"] = ["N/A" for m in predmonths]
+                    preddict["Year"] = ["N/A" for m in predmonths]
 
                     for title in totaltitles:
                         if title not in ["Month No.", "Month", "Year"]:
-                            preddict[title] = 0                 
+                            preddict[title] = [0 for m in predmonths]                 
+
 
                     for i in range(len(ycols)):
-                        for p in pred[0][0]:
-                            preddict[ycols[i]] = round(p, 2)
+                        preddict[ycols[i]] = round(pred[0][i], 2)
 
                     for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
 
@@ -1093,30 +1095,69 @@ else:
 
                     preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
 
-                    y = pd.DataFrame.from_dict(preddict)
+                    preddf = pd.DataFrame.from_dict(preddict)
 
-                    st.write(y)
+                    if c2:
+                        c2.header("Data Prediction")
+                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+
+                    else:
+                        st.header("Data Prediction")
+                        st.dataframe(preddf, use_container_width=True, hide_index=True)
+
+                    if sidebar.button("Add Predicted Entry"):
+                            
+                        try:
+                        
+                            data = {}
+
+                            for col in st.session_state.userdata.columns:
+
+                                data[col] = []
+
+                                for val in st.session_state.userdata[col]:
+                                    data[col].append(val)
+
+                                if isNum(preddict[col][0]):
+                                    newval = round(preddict[col][0], 2)
+                                else:
+                                    newval = preddict[col][0]
+
+                                data[col].append(newval)
+
+
+                            data = cleanData(data)
+                            newdf = pd.DataFrame().from_dict(data)
+                            saveEntries(newdf, st.session_state.userid)
+
+                            print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
+
+                        except:
+                            print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
                 sidebar.header("Columns to :green[Plot]:")
 
+                if predmonths:
+                    endentry += predmonths
+
                 for i in range(numcols):
 
-                    selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols])
-                    y = list(st.session_state.userdata[selectedcol])[startentry:endentry]
+                    selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in ["Month No.", "Month", "Year"]])
+                    ycol = y[selectedcol].iloc[startentry-1:endentry]
 
                     selectedcols.append(selectedcol)
                     
                     if gtype == "Scatter Plot":
-                        sn.scatterplot(x=x, y=y)
+                        sn.scatterplot(x=x, y=ycol)
 
                     elif gtype == "Line Plot":
-                        sn.lineplot(x=x, y=y)
+                        sn.lineplot(x=x, y=ycol)
 
                     elif gtype == "Linear Regression Plot":
-                        sn.regplot(x=x, y=y)
+                        sn.regplot(x=x, y=ycol)
 
                     elif gtype == "Bar Plot":
-                        sn.barplot(x=x, y=y)
+                        sn.barplot(x=x, y=ycol)
                 
                 if c2:
                     c2.header("Graph Display")
