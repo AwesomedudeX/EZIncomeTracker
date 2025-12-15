@@ -1001,6 +1001,14 @@ else:
 
             for col in showCols:
                 displaydata[col] = st.session_state.userdata[col]
+
+            if c1:
+                c1.header("Your Data")
+                c1.dataframe(displaydata, use_container_width=True, hide_index=True)
+            else:
+                st.write("---")
+                st.header("Your Data")
+                st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
         
             if userchoice == "Generate Graphs":
 
@@ -1049,9 +1057,7 @@ else:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
                 elif predictdata:
-    
-                    # FIX THIS
-                
+                    
                     predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
                     predmonthamount = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
 
@@ -1102,12 +1108,13 @@ else:
 
                     preddf = pd.DataFrame.from_dict(preddict)
 
-                    if c2:
-                        c2.header("Data Prediction")
-                        c2.dataframe(preddf, use_container_width=True, hide_index=True)
+
+                    if c1:
+                        c1.subheader("Predicted Data")
+                        c1.dataframe(preddf, use_container_width=True, hide_index=True)
 
                     else:
-                        st.header("Data Prediction")
+                        st.subheader("Predicted Data")
                         st.dataframe(preddf, use_container_width=True, hide_index=True)
 
                                                     
@@ -1127,7 +1134,7 @@ else:
                             else:
                                 newval = val
 
-                        data[col].append(newval)
+                            data[col].append(newval)
 
 
                     st.write(preddict)
@@ -1139,6 +1146,8 @@ else:
 
                 if predictdata:
                     endentry += predmonthamount
+
+                st.write(y)
 
                 for i in range(numcols):
 
@@ -1263,16 +1272,6 @@ else:
 
                         sidebar.success("Entry created successfully.")
 
-
-            if c1:
-                
-                c1.header("Your Data")
-                c1.dataframe(displaydata, use_container_width=True, hide_index=True)
-
-            else:
-                st.write("---")
-                st.header("Your Data")
-                st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
 
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
