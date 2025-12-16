@@ -14,7 +14,7 @@ requiredlibraries = [
     "sklearn"
 ]
 totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
-pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Analyze Your Data"]
+pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
@@ -1065,7 +1065,10 @@ else:
 
                     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
                     xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-                    lr = lreg().fit(xtrain, ytrain)
+
+                    for col in ytrain:
+
+                        lr = lreg().fit(xtrain, ytrain)
 
                     predmonths = [[i+1+endentry] for i in range(predmonthamount)]
                     pred = lr.predict(predmonths)
@@ -1137,17 +1140,14 @@ else:
                             data[col].append(newval)
 
 
-                    st.write(preddict)
-
                     data = cleanData(data)
                     y = pd.DataFrame().from_dict(data)
 
                 sidebar.header("Columns to :green[Plot]:")
 
                 if predictdata:
+                    x = y["Month No."]
                     endentry += predmonthamount
-
-                st.write(y)
 
                 for i in range(numcols):
 
@@ -1275,3 +1275,6 @@ else:
 
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
+
+    else:
+        pass
