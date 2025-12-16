@@ -1110,11 +1110,11 @@ else:
 
                     if c1:
                         c1.subheader("Predicted Data")
-                        c1.dataframe(preddf, use_container_width=True, hide_index=True)
+                        c1.dataframe(preddf[[col for col in preddf.columns if col not in ["Month", "Year"]]], use_container_width=True, hide_index=True)
 
                     else:
                         st.subheader("Predicted Data")
-                        st.dataframe(preddf, use_container_width=True, hide_index=True)
+                        st.dataframe(preddf[[col for col in preddf.columns if col not in ["Month", "Year"]]], use_container_width=True, hide_index=True)
 
                                                     
                     data = {}
