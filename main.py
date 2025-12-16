@@ -1278,14 +1278,19 @@ else:
 
     else:
         
-        budgetfileuploadexp = sidebar.expander("**Upload Your :green[Budgeting] File**")
-        datafile = budgetfileuploadexp.file_uploader("**Upload your budget file below:**", accept_multiple_files=False, type=["csv"])
+        if lendata > 0:
+        
+            budgetfileuploadexp = sidebar.expander("**Upload Your :green[Budgeting] File**")
+            datafile = budgetfileuploadexp.file_uploader("**Upload your budget file below:**", accept_multiple_files=False, type=["csv"])
 
-        if datafile and budgetfileuploadexp.button("Upload File"):
-            
-            try:
-                df = pd.read_csv(datafile)
-                st.success("Your budget file was uploaded successfully!")
+            if datafile and budgetfileuploadexp.button("Upload File"):
+                
+                try:
+                    df = pd.read_csv(datafile)
+                    st.success("Your budget file was uploaded successfully!")
 
-            except:
-                st.error("There was an issue in uploading your file. Please try again.")
+                except:
+                    st.error("There was an issue in uploading your file. Please try again.")
+
+        else:
+            st.subheader("Please add at least one entry to budget with your accounts.")
