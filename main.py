@@ -14,7 +14,7 @@ requiredlibraries = [
     "sklearn"
 ]
 defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
-pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Analyze Your Data", "Plan Your Budget"]
+pages = ["Home", "Create an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 # Importing libraries/modules
@@ -178,7 +178,7 @@ if page == "Home":
             df = pd.read_csv(datafile)
             lendata = len(st.session_state.userdata)
 
-            st.success("Data file uploaded successfully!")
+            st.success("Your data file was uploaded successfully!")
 
             if st.session_state.userid not in st.session_state.currentids and lendata > 0:
 
@@ -227,7 +227,7 @@ else:
     else:
         currentmonthno = 1
 
-    if page == "Add an Entry":
+    if page == "Create an Entry":
 
         st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
 
@@ -674,7 +674,7 @@ else:
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                     st.session_state.userdata = cleanDF(st.session_state.userdata)
 
-    elif page == "Edit an Entry":
+    elif page == "Edit Your Entries":
 
         if lendata == 0:
             st.subheader("Please add an entry before attempting to edit your entries.")
@@ -1278,4 +1278,14 @@ else:
 
     else:
         
-        budgetuploadex = sidebar.expander("Upload Budgeting File")
+        budgetfileuploadexp = sidebar.expander("**Upload Your :green[Budgeting] File**")
+        datafile = budgetfileuploadexp.file_uploader("**Upload your budget file below:**", accept_multiple_files=False, type=["csv"])
+
+        if datafile and budgetfileuploadexp.button("Upload File"):
+            
+            try:
+                df = pd.read_csv(datafile)
+                st.success("Your budget file was uploaded successfully!")
+
+            except:
+                st.error("There was an issue in uploading your file. Please try again.")
