@@ -1013,7 +1013,6 @@ else:
             if userchoice == "Generate Graphs":
 
                 cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
-                monthnos = [int(m) for m in st.session_state.userdata["Month No."]]
 
                 if len(cols) < 10:
                     maxcols = len(cols)
@@ -1037,9 +1036,6 @@ else:
 
                     startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)
                     endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
-
-                fig, ax = plt.subplots()
-                ax.set_xticks(np.arange(0, np.max(monthnos)+1, 1))
 
                 plt.xlabel("Month No.")
                 plt.ylabel(f"Amount ($)")
@@ -1143,19 +1139,21 @@ else:
                     data = cleanData(data)
                     y = pd.DataFrame().from_dict(data)
 
-                sidebar.header("Columns to :green[Plot]:")
-
-                if predictdata:
-                    x = y["Month No."]
                     endentry += predmonthamount
+                    x = y["Month No."].iloc[startentry-1:endentry]
+
+                plotcols = sidebar.expander("**Columns to :green[Plot]**")
+
+                fig, ax = plt.subplots()
+                ax.set_xticks(np.arange(0, np.max(x)+1, 1))
 
                 for i in range(numcols):
 
-                    selectedcol = sidebar.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in ["Month No.", "Month", "Year"]])
+                    selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in ["Month No.", "Month", "Year"]])
                     ycol = y[selectedcol].iloc[startentry-1:endentry]
 
                     selectedcols.append(selectedcol)
-                    
+
                     if gtype == "Scatter Plot":
                         sn.scatterplot(x=x, y=ycol)
 
