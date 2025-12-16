@@ -13,7 +13,7 @@ requiredlibraries = [
     "seaborn",
     "sklearn"
 ]
-totaltitles = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
+defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
 pages = ["Home", "Add an Entry", "Your Income Data", "Edit an Entry", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
@@ -32,6 +32,7 @@ from sklearn.model_selection import train_test_split as tts
 
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
+# General data cleaning/checking functions
 def isNum(num: str):
     
     try:
@@ -77,6 +78,7 @@ def cleanData(data: dict):
 
     return data
 
+# Income tracker-specific functions
 def saveEntries(df, id):
 
     df = cleanDF(df)
@@ -95,7 +97,7 @@ def sortAccounts(df: pd.DataFrame):
     newdata = {}
 
     for col in df.columns:
-        if col in totaltitles or col[-9:] == "(Revenue)" or col[-5:] == "(Tax)":
+        if col in defaultcols or col[-9:] == "(Revenue)" or col[-5:] == "(Tax)":
             newdata[col] = df[col]
 
     for col in df.columns:
@@ -129,7 +131,7 @@ if "userdata" not in st.session_state or "userid" not in st.session_state or "cu
         
         st.session_state.userdata = pd.DataFrame()
 
-        for title in totaltitles:
+        for title in defaultcols:
             st.session_state.userdata[title] = []
             
     import users
@@ -663,7 +665,7 @@ else:
                     
                     newdata = {}
 
-                    for title in totaltitles:
+                    for title in defaultcols:
                         newdata[title] = []
 
                     st.session_state.userdata = pd.DataFrame.from_dict(newdata)
@@ -1012,7 +1014,7 @@ else:
         
             if userchoice == "Generate Graphs":
 
-                cols = [c for c in st.session_state.userdata.columns if c not in ["Month No.", "Month", "Year"]]
+                cols = [c for c in st.session_state.userdata.columns if c not in defaultcols[:3]]
 
                 if len(cols) < 10:
                     maxcols = len(cols)
@@ -1043,11 +1045,11 @@ else:
                 selectedcols = []
 
                 cols = st.session_state.userdata.columns
-                ycols = [c for c in cols if c not in totaltitles]
+                ycols = [c for c in cols if c not in defaultcols]
                 predmonths = 0
 
                 x = st.session_state.userdata["Month No."].iloc[startentry-1:endentry]
-                y = st.session_state.userdata[[c for c in cols if c not in ["Month No.", "Month", "Year"]]].iloc[startentry-1:endentry]
+                y = st.session_state.userdata[[c for c in cols if c not in defaultcols[:3]]].iloc[startentry-1:endentry]
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
@@ -1074,8 +1076,8 @@ else:
                     preddict["Month"] = ["N/A" for m in predmonths]
                     preddict["Year"] = ["N/A" for m in predmonths]
 
-                    for title in totaltitles:
-                        if title not in ["Month No.", "Month", "Year"]:
+                    for title in defaultcols:
+                        if title not in defaultcols[:3]:
                             preddict[title] = [0 for m in predmonths]                 
 
 
@@ -1088,7 +1090,7 @@ else:
 
                         preddict[ycols[c]] = predcol
 
-                    for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+                    for col in [c for c in preddict if c not in defaultcols[:3]]:
 
                         for i in range(len(preddict[col])):
 
@@ -1110,11 +1112,11 @@ else:
 
                     if c1:
                         c1.subheader("Predicted Data")
-                        c1.dataframe(preddf[[col for col in preddf.columns if col not in ["Month", "Year"]]], use_container_width=True, hide_index=True)
+                        c1.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
 
                     else:
                         st.subheader("Predicted Data")
-                        st.dataframe(preddf[[col for col in preddf.columns if col not in ["Month", "Year"]]], use_container_width=True, hide_index=True)
+                        st.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
 
                                                     
                     data = {}
@@ -1149,7 +1151,7 @@ else:
 
                 for i in range(numcols):
 
-                    selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in ["Month No.", "Month", "Year"]])
+                    selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in defaultcols[:3]])
                     ycol = y[selectedcol].iloc[startentry-1:endentry]
 
                     selectedcols.append(selectedcol)
@@ -1176,7 +1178,7 @@ else:
             else:
                 
                 cols = st.session_state.userdata.columns
-                ycols = [c for c in cols if c not in totaltitles]
+                ycols = [c for c in cols if c not in defaultcols]
 
                 if len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
@@ -1202,15 +1204,15 @@ else:
                     preddict["Month"] = ["N/A"]
                     preddict["Year"] = ["N/A"]
 
-                    for title in totaltitles:
-                        if title not in ["Month No.", "Month", "Year"]:
+                    for title in defaultcols:
+                        if title not in defaultcols[:3]:
                             preddict[title] = 0                 
 
 
                     for i in range(len(ycols)):
                         preddict[ycols[i]] = round(pred[0][i], 2)
 
-                    for col in [c for c in preddict if c not in ["Month No.", "Month", "Year"]]:
+                    for col in [c for c in preddict if c not in defaultcols[:3]]:
 
                         preddict[col] = [preddict[col]]
 
@@ -1275,4 +1277,5 @@ else:
             st.subheader("Please enter more than one entry to analyze your data.")
 
     else:
-        pass
+        
+        budgetuploadex = sidebar.expander("Upload Budgeting File")
