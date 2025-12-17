@@ -1278,6 +1278,8 @@ else:
 
     else:
         
+        st.write("Here, you can create your own budget plan for each month. To get started, start entering values, or just upload your current budget file to pick up where you left off.")
+
         if lendata > 0:
         
             budgetfileuploadexp = sidebar.expander("**Upload Your :green[Budgeting] File**")
@@ -1291,6 +1293,28 @@ else:
 
                 except:
                     st.error("There was an issue in uploading your file. Please try again.")
+
+            monthnos = list(st.session_state.userdata["Month No."])
+            monthno = sidebar.number_input("**Month Number:**", step=1, min_value=max(monthnos)+1)
+
+            revaccounts = []
+            taxaccounts = []
+            expaccounts = []
+            
+            for col in st.session_state.userdata.columns:
+
+                if "(Revenue)" == col[-9:]:
+                    revaccounts.append(col)
+
+                elif "(Tax)" == col[-5:]:
+                    taxaccounts.append(col)
+
+                elif "(Expense)" == col[-9:]:
+                    expaccounts.append(col)
+
+            
+
+            #st.expander("Your Budget Plan")
 
         else:
             st.subheader("Please add at least one entry to budget with your accounts.")
