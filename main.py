@@ -465,7 +465,7 @@ else:
 
         st.write("---")
         st.header("Entry Preview")
-        st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+        st.dataframe(totalvalsstr, hide_index=True, width="stretch")
 
         if sidebar.button("Add an Entry"):
                 
@@ -659,9 +659,9 @@ else:
                 for col in showCols:
                     displaydf[col] = st.session_state.userdata[col].iloc[startentry:endentry]                    
 
-                st.dataframe(displaydf, use_container_width=True, hide_index=True)
+                st.dataframe(displaydf, width="stretch", hide_index=True)
 
-                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
+                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", width="stretch"):
                     
                     newdata = {}
 
@@ -714,7 +714,7 @@ else:
                     monthindex = m
                     break
 
-            monthno = c1.number_input("**Editing Entry (Month No.):**", min_value=1, max_value=lendata, value=lendata)
+            monthno = c1.number_input("**Editing Entry (Month No.):**", min_value=1, max_value=currentmonthno-1, value=currentmonthno-1)
             month = c2.selectbox("**Month**", months, index=monthindex)
             year = c3.number_input("**Year**", currentyear, step=1)
 
@@ -922,8 +922,10 @@ else:
             totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
 
             st.write("---")
-            st.header("Entry Preview")
-            st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+            st.header("Before:")
+            st.dataframe(st.session_state.userdata.iloc[:, ], hide_index=True, width="stretch")
+            st.header("After:")
+            st.dataframe(totalvalsstr, hide_index=True, width="stretch")
 
             if sidebar.button("Save Entry"):
                     
@@ -1006,11 +1008,10 @@ else:
 
             if c1:
                 c1.header("Your Data")
-                c1.dataframe(displaydata, use_container_width=True, hide_index=True)
+                c1.dataframe(displaydata, width="stretch", hide_index=True)
             else:
-                st.write("---")
                 st.header("Your Data")
-                st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
+                st.dataframe(st.session_state.userdata[showCols], width="stretch", hide_index=True)                
         
             if userchoice == "Generate Graphs":
 
@@ -1112,11 +1113,11 @@ else:
 
                     if c1:
                         c1.subheader("Predicted Data")
-                        c1.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
+                        c1.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], width="stretch", hide_index=True)
 
                     else:
                         st.subheader("Predicted Data")
-                        st.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
+                        st.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], width="stretch", hide_index=True)
 
                                                     
                     data = {}
@@ -1231,11 +1232,11 @@ else:
 
                     if c2:
                         c2.header("Data Prediction")
-                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+                        c2.dataframe(pd.DataFrame.from_dict(preddict), width="stretch", hide_index=True)
 
                     else:
                         st.header("Data Prediction")
-                        st.dataframe(preddf, use_container_width=True, hide_index=True)
+                        st.dataframe(preddf, width="stretch", hide_index=True)
 
                     if sidebar.button("Add Predicted Entry"):
                             
@@ -1314,7 +1315,27 @@ else:
 
             
 
-            #st.expander("Your Budget Plan")
+            accselectionexp = sidebar.expander("**Selected Accounts**")
+            acclist = []
 
+            accselectionexp.subheader("Revenue Accounts")
+
+            if len(revaccounts) > 0:
+
+                for acc in revaccounts:
+                    
+                    if accselectionexp.checkbox(acc):
+                        acclist.append(acc)
+                        acclist.append(acc[:-9]+"(Tax)")
+
+            if len(expaccounts) > 0:
+
+                for acc in expaccounts:
+
+                    accselectionexp.subheader("Expense Accounts")
+
+                    if accselectionexp.checkbox(acc):
+                        acclist.append(acc)
+                        
         else:
             st.subheader("Please add at least one entry to budget with your accounts.")
