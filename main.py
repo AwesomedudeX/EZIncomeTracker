@@ -1,5 +1,3 @@
-# CURRENT TASK: Add predicted curve graphing and ADD USER ID ADDITION TO FILE UPLOADING
-
 import streamlit as st
 
 # Webpage Settings
@@ -465,7 +463,7 @@ else:
 
         st.write("---")
         st.header("Entry Preview")
-        st.dataframe(totalvalsstr, hide_index=True, width="stretch")
+        st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
         if sidebar.button("Add an Entry"):
                 
@@ -659,9 +657,9 @@ else:
                 for col in showCols:
                     displaydf[col] = st.session_state.userdata[col].iloc[startentry:endentry]                    
 
-                st.dataframe(displaydf, width="stretch", hide_index=True)
+                st.dataframe(displaydf, use_container_width=True, hide_index=True)
 
-                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", width="stretch"):
+                if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
                     
                     newdata = {}
 
@@ -923,9 +921,9 @@ else:
 
             st.write("---")
             st.header("Before:")
-            st.dataframe(st.session_state.userdata.iloc[:, ], hide_index=True, width="stretch")
+            st.dataframe(st.session_state.userdata.iloc[:, ], hide_index=True, use_container_width=True)
             st.header("After:")
-            st.dataframe(totalvalsstr, hide_index=True, width="stretch")
+            st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
             if sidebar.button("Save Entry"):
                     
@@ -1008,10 +1006,10 @@ else:
 
             if c1:
                 c1.header("Your Data")
-                c1.dataframe(displaydata, width="stretch", hide_index=True)
+                c1.dataframe(displaydata, use_container_width=True, hide_index=True)
             else:
                 st.header("Your Data")
-                st.dataframe(st.session_state.userdata[showCols], width="stretch", hide_index=True)                
+                st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
         
             if userchoice == "Generate Graphs":
 
@@ -1113,11 +1111,11 @@ else:
 
                     if c1:
                         c1.subheader("Predicted Data")
-                        c1.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], width="stretch", hide_index=True)
+                        c1.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
 
                     else:
                         st.subheader("Predicted Data")
-                        st.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], width="stretch", hide_index=True)
+                        st.dataframe(preddf[[col for col in preddf.columns if col not in defaultcols[1:3]]], use_container_width=True, hide_index=True)
 
                                                     
                     data = {}
@@ -1232,11 +1230,11 @@ else:
 
                     if c2:
                         c2.header("Data Prediction")
-                        c2.dataframe(pd.DataFrame.from_dict(preddict), width="stretch", hide_index=True)
+                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
 
                     else:
                         st.header("Data Prediction")
-                        st.dataframe(preddf, width="stretch", hide_index=True)
+                        st.dataframe(preddf, use_container_width=True, hide_index=True)
 
                     if sidebar.button("Add Predicted Entry"):
                             
@@ -1277,13 +1275,13 @@ else:
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
 
-    else:
+    elif page == "Plan Your Budget":
         
-        st.write("Here, you can create your own budget plan for each month. To get started, start entering values, or just upload your current budget file to pick up where you left off.")
+        st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is recommended to use **all** fixed (unchanging) accounts for the most **accurate** budget planning.")
 
         if lendata > 0:
         
-            budgetfileuploadexp = sidebar.expander("**Upload Your :green[Budgeting] File**")
+            budgetfileuploadexp = sidebar.expander("**:green[Upload] Your Budgeting File**")
             datafile = budgetfileuploadexp.file_uploader("**Upload your budget file below:**", accept_multiple_files=False, type=["csv"])
 
             if datafile and budgetfileuploadexp.button("Upload File"):
@@ -1301,7 +1299,12 @@ else:
             revaccounts = []
             taxaccounts = []
             expaccounts = []
-            
+
+            budgetdata = {}
+            budgetdata["Account"] = []
+            budgetdata["Subaccount"] = []
+            budgetdata["Amount ($)"] = []
+
             for col in st.session_state.userdata.columns:
 
                 if "(Revenue)" == col[-9:]:
@@ -1314,28 +1317,106 @@ else:
                     expaccounts.append(col)
 
             
+            accselectionex = sidebar.expander("**Selected Accounts**")
+            selectedrevaccs = []
+            selectedexpaccs = []
 
-            accselectionexp = sidebar.expander("**Selected Accounts**")
-            acclist = []
-
-            accselectionexp.subheader("Revenue Accounts")
 
             if len(revaccounts) > 0:
+    
+                accselectionex.subheader("Revenue/Tax Accounts")
+    
+                for revacc in revaccounts:
+                    if accselectionex.checkbox(revacc[:-10], True):
+                        selectedrevaccs.append(revacc)
 
-                for acc in revaccounts:
-                    
-                    if accselectionexp.checkbox(acc):
-                        acclist.append(acc)
-                        acclist.append(acc[:-9]+"(Tax)")
 
             if len(expaccounts) > 0:
+    
+                accselectionex.subheader("Expense Accounts")
+    
+                for expacc in expaccounts:
+                    if accselectionex.checkbox(expacc[:-10], True):
+                        selectedexpaccs.append(expacc)
 
-                for acc in expaccounts:
+            subaccnumex = sidebar.expander("**Number of Subaccounts**")
 
-                    accselectionexp.subheader("Expense Accounts")
+            if len(selectedrevaccs) > 0:
 
-                    if accselectionexp.checkbox(acc):
-                        acclist.append(acc)
-                        
+                st.write("---")
+                st.header("Revenue/Tax Accounts")
+                st.write("---")
+
+                subaccnumex.header("Revenue/Tax Accounts")
+
+                for revaccname in revaccounts:
+
+                    taxaccname = revaccname[:-9]+"(Tax)"
+                    
+                    if revaccname in selectedrevaccs:
+
+                        st.subheader(revaccname[:-10])
+
+                        subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1)
+    
+                        for i in range(subaccnum):
+    
+                            c1, c2, c3 = st.columns(3)
+
+                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=f"Unnamed Subaccount {i+1}")
+                            subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0.)
+                            subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**")
+
+                            budgetdata["Account"].append(revaccname[:-10])
+                            budgetdata["Subaccount"].append(subaccname+" (Revenue)")
+                            budgetdata["Amount ($)"].append(subaccamt)
+
+                            budgetdata["Account"].append(revaccname[:-10])
+                            budgetdata["Subaccount"].append(subaccname+" (Tax)")
+                            budgetdata["Amount ($)"].append(subacctax)
+                    
+
+            if len(selectedexpaccs) > 0:
+
+                if len(selectedrevaccs) > 0:
+                    subaccnumex.write("---")
+
+                st.write("---")
+                st.header("Expense Accounts")
+                st.write("---")
+
+                subaccnumex.header("Expense Accounts")
+
+                for expaccname in expaccounts:
+                    
+                    subexpaccs = {}
+
+                    if expaccname in selectedexpaccs:
+
+                        st.subheader(expaccname[:-10])
+
+                        subaccnum = subaccnumex.number_input("**"+expaccname[:-10]+"**:", step=1, min_value=1)
+    
+                        for i in range(subaccnum):
+    
+                            c1, c2 = st.columns(2)
+
+                            subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=f"Unnamed Subaccount {i+1}")
+                            subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0.)
+
+                            budgetdata["Account"].append(expaccname[:-10])
+                            budgetdata["Subaccount"].append(subaccname+" (Expense)")
+                            budgetdata["Amount ($)"].append(subaccamt)
+                    
+
+                subexpaccs[subaccname+" (Expense)"] = subaccamt
+                
+            budgetdf = pd.DataFrame().from_dict(budgetdata)
+
+            st.write("---")
+            st.dataframe(budgetdf, use_container_width=True, hide_index=True)
+            
+            download = sidebar.download_button("**:green[Download] Budget File**", budgetdf.to_csv(index=False), file_name="budget.csv")
+
         else:
             st.subheader("Please add at least one entry to budget with your accounts.")
