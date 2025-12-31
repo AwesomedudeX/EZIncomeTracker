@@ -274,13 +274,13 @@ else:
             
             st.write("---")
             st.header("Revenue Sources")
-
-            c1, c2, c3 = st.columns(3)
             
             unnamedaccounts = 0
 
             for i in range(revenuecount):
 
+                c1, c2, c3 = st.columns(3)
+    
                 accname = ""
 
                 if (i < len(existingrevs)):
@@ -319,11 +319,11 @@ else:
             st.write("---")
             st.header("Expenses")
 
-            c1, c2 = st.columns(2)
-
             unnamedaccounts = 0
 
             for i in range(expensecount):
+
+                c1, c2 = st.columns(2)
 
                 accname = ""
 
