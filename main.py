@@ -1297,22 +1297,36 @@ else:
                     
                     if budgetfileuploadexp.button("Upload File"):
 
-                        if list(st.session_state.budgetdata.keys()) == ["Account", "Subaccount", "Amount ($)"]:
+                        budgetdf = pd.read_csv(datafile)
+
+                        if list(budgetdf.columns) == ["Account", "Subaccount", "Amount ($)"]:
                             
-                            # ADD ERROR HANDLING FOR NON-NUMERICAL AMOUNT VALUES
+                            validdata = True
                             
-                            budgetdf = pd.read_csv(datafile)
                             st.session_state.budgetdata = {}
                             
                             for col in budgetdf.columns:
+
                                 st.session_state.budgetdata[col] = list(budgetdf[col])
 
-                            st.session_state.uploadedbudgetfile = True
+                                if col in "Amount ($)":
 
-                            budgetfileuploadexp.success("Your budget file was uploaded successfully!")
+                                    for val in st.session_state.budgetdata[col]:
+                                        
+                                        if not isNum(val):
+                                            validdata = False
+                                            break
+
+                                
+                            if validdata:
+                                st.session_state.uploadedbudgetfile = True
+                                budgetfileuploadexp.success("Your budget file was uploaded successfully!")
                             
+                            else:
+                                budgetfileuploadexp.error("Please upload a valid budget file - all amount values must be numerical.")
+
                         else:
-                            budgetfileuploadexp.error("Please upload a valid budget file.")
+                            budgetfileuploadexp.error("Please upload a valid budget file - the file should only have the columns \"Account\", \"Subaccount\" and \"Amount ($)\".")
 
                 except:
                     st.error("There was an issue in uploading your file. Please try again.")
@@ -1413,7 +1427,7 @@ else:
                             initialamt = 0.
                             initialtax = 0.
 
-                            # ADD PREVIOUS VALUES
+                            ### ADD PREVIOUS VALUES TO SUBACCOUNT VALUE ENTRIES
 
                             subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
