@@ -118,7 +118,7 @@ def colSelector(defaultval: bool = True):
 
     return showCols
 
-if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state:
+if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state or "budgetdata" not in st.session_state or "uploadedbudgetfile" not in st.session_state:
 
     st.session_state.currentids = []
 
@@ -136,6 +136,13 @@ if "userdata" not in st.session_state or "userid" not in st.session_state or "cu
 
     st.session_state.currentids = users.userids
     st.session_state.userid = st.session_state.currentids[-1] + 1
+
+    st.session_state.budgetdata = {}
+    st.session_state.budgetdata["Account"] = []
+    st.session_state.budgetdata["Subaccount"] = []
+    st.session_state.budgetdata["Amount ($)"] = []
+
+    st.session_state.uploadedbudgetfile = False
 
 
 sidebar = st.sidebar
@@ -197,10 +204,9 @@ if page == "Home":
             st.session_state.userdata = df
             saveEntries(st.session_state.userdata, st.session_state.userid)
 
-
         except:
             st.error("There was an issue in uploading your file. Please try again.")
-
+    
 else:
 
     st.title(page)
@@ -1278,20 +1284,41 @@ else:
     elif page == "Plan Your Budget":
         
         st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is recommended to use **all** fixed (unchanging) accounts for the most **accurate** budget planning.")
+        st.write(":grey[**Note: You only use accounts that are present in your income data.**]")
 
-        if lendata > 0:
+        if lendata > 0 and list(st.session_state.userdata.keys()) != defaultcols:
         
             budgetfileuploadexp = sidebar.expander("**:green[Upload] Your Budgeting File**")
             datafile = budgetfileuploadexp.file_uploader("**Upload your budget file below:**", accept_multiple_files=False, type=["csv"])
 
-            if datafile and budgetfileuploadexp.button("Upload File"):
+            if datafile:
                 
                 try:
-                    df = pd.read_csv(datafile)
-                    st.success("Your budget file was uploaded successfully!")
+                    
+                    if budgetfileuploadexp.button("Upload File"):
+
+                        if list(st.session_state.budgetdata.keys()) == ["Account", "Subaccount", "Amount ($)"]:
+                            
+                            # ADD ERROR HANDLING FOR NON-NUMERICAL AMOUNT VALUES
+                            
+                            budgetdf = pd.read_csv(datafile)
+                            st.session_state.budgetdata = {}
+                            
+                            for col in budgetdf.columns:
+                                st.session_state.budgetdata[col] = list(budgetdf[col])
+
+                            st.session_state.uploadedbudgetfile = True
+
+                            budgetfileuploadexp.success("Your budget file was uploaded successfully!")
+                            
+                        else:
+                            budgetfileuploadexp.error("Please upload a valid budget file.")
 
                 except:
                     st.error("There was an issue in uploading your file. Please try again.")
+
+            else:
+                st.session_state.uploadedbudgetfile = False
 
             monthnos = list(st.session_state.userdata["Month No."])
             monthno = sidebar.number_input("**Month Number:**", step=1, min_value=max(monthnos)+1)
@@ -1299,11 +1326,6 @@ else:
             revaccounts = []
             taxaccounts = []
             expaccounts = []
-
-            budgetdata = {}
-            budgetdata["Account"] = []
-            budgetdata["Subaccount"] = []
-            budgetdata["Amount ($)"] = []
 
             for col in st.session_state.userdata.columns:
 
@@ -1351,21 +1373,52 @@ else:
 
                 for revaccname in revaccounts:
 
+                    existingsubaccs = []
+                    subaccindices = []
                     taxaccname = revaccname[:-9]+"(Tax)"
+
+                    budgetdata = {}
+                    budgetdata["Account"] = []
+                    budgetdata["Subaccount"] = []
+                    budgetdata["Amount ($)"] = []
                     
                     if revaccname in selectedrevaccs:
 
+                        initialsubaccnum = 1
+
                         st.subheader(revaccname[:-10])
 
-                        subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1)
-    
+                        if st.session_state.uploadedbudgetfile:
+                                
+                            initialsubaccnum = 0
+                            
+                            for i in range(len(st.session_state.budgetdata["Account"])):
+                                
+                                if revaccname[:-10] == st.session_state.budgetdata["Account"][i] and st.session_state.budgetdata["Subaccount"][i][-9:] == "(Revenue)":
+                                    initialsubaccnum += 1
+                                    existingsubaccs.append(revaccname[:-10])
+                                    subaccindices.append(i)
+
+                        subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
+
                         for i in range(subaccnum):
     
                             c1, c2, c3 = st.columns(3)
 
-                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=f"Unnamed Subaccount {i+1}")
-                            subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0.)
-                            subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**")
+                            initialsubaccname = f"Unnamed Subaccount {i+1}"
+
+                            if i < len(existingsubaccs):
+                                initialsubaccname = existingsubaccs[i]
+
+                            initialamt = 0.
+                            initialtax = 0.
+
+                            # ADD PREVIOUS VALUES
+
+                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
+                            subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
+                            subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**", min_value=0., value=initialtax)
+
 
                             budgetdata["Account"].append(revaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Revenue)")
@@ -1410,13 +1463,13 @@ else:
                     
 
                 subexpaccs[subaccname+" (Expense)"] = subaccamt
-                
+            
             budgetdf = pd.DataFrame().from_dict(budgetdata)
-
+ 
             st.write("---")
             st.dataframe(budgetdf, use_container_width=True, hide_index=True)
             
             download = sidebar.download_button("**:green[Download] Budget File**", budgetdf.to_csv(index=False), file_name="budget.csv")
 
         else:
-            st.subheader("Please add at least one entry to budget with your accounts.")
+            st.subheader("Please add at least one entry (with at least one account) to budget with your accounts.")
