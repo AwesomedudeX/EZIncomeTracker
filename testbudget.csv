@@ -1,9 +1,9 @@
 Account,Subaccount,Amount ($)
-Unnamed Revenue Account 1,Unnamed Subaccount 1 (Revenue),0.0
-Unnamed Revenue Account 1,Unnamed Subaccount 1 (Tax),0.0
-Unnamed Revenue Account 1,Unnamed Subaccount 2 (Revenue),0.0
-Unnamed Revenue Account 1,Unnamed Subaccount 2 (Tax),0.0
-Unnamed Revenue Account 2,Unnamed Subaccount 1 (Revenue),0.0
-Unnamed Revenue Account 2,Unnamed Subaccount 1 (Tax),0.0
-Unnamed Expense Account 1,Unnamed Subaccount 1 (Expense),0.0
-Unnamed Expense Account 1,Unnamed Subaccount 2 (Expense),0.0
+Unnamed Revenue Account 1,Unnamed Subaccount 1 (Revenue),50.0
+Unnamed Revenue Account 1,Unnamed Subaccount 1 (Tax),5.0
+Unnamed Revenue Account 1,Unnamed Subaccount 2 (Revenue),30.0
+Unnamed Revenue Account 1,Unnamed Subaccount 2 (Tax),2.0
+Unnamed Revenue Account 2,Unnamed Subaccount 1 (Revenue),42.0
+Unnamed Revenue Account 2,Unnamed Subaccount 1 (Tax),21.0
+Unnamed Expense Account 1,Unnamed Subaccount 1 (Expense),10.0
+Unnamed Expense Account 1,Unnamed Subaccount 2 (Expense),15.0

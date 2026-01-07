@@ -206,7 +206,8 @@ if page == "Home":
 
         except:
             st.error("There was an issue in uploading your file. Please try again.")
-    
+
+
 else:
 
     st.title(page)
@@ -1284,7 +1285,7 @@ else:
     elif page == "Plan Your Budget":
         
         st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is recommended to use **all** fixed (unchanging) accounts for the most **accurate** budget planning.")
-        st.write(":grey[**Note: You only use accounts that are present in your income data.**]")
+        st.write(":grey[**Note: You may only use accounts that are present in your income data.**]")
 
         if lendata > 0 and list(st.session_state.userdata.keys()) != defaultcols:
         
@@ -1377,6 +1378,11 @@ else:
 
             subaccnumex = sidebar.expander("**Number of Subaccounts**")
 
+            budgetdata = {}
+            budgetdata["Account"] = []
+            budgetdata["Subaccount"] = []
+            budgetdata["Amount ($)"] = []
+
             if len(selectedrevaccs) > 0:
 
                 st.write("---")
@@ -1388,13 +1394,10 @@ else:
                 for revaccname in revaccounts:
 
                     existingsubaccs = []
+                    existingsubamts = []
+                    existingsubtax = []
                     subaccindices = []
                     taxaccname = revaccname[:-9]+"(Tax)"
-
-                    budgetdata = {}
-                    budgetdata["Account"] = []
-                    budgetdata["Subaccount"] = []
-                    budgetdata["Amount ($)"] = []
                     
                     if revaccname in selectedrevaccs:
 
@@ -1409,9 +1412,17 @@ else:
                             for i in range(len(st.session_state.budgetdata["Account"])):
                                 
                                 if revaccname[:-10] == st.session_state.budgetdata["Account"][i] and st.session_state.budgetdata["Subaccount"][i][-9:] == "(Revenue)":
+                                    
                                     initialsubaccnum += 1
-                                    existingsubaccs.append(revaccname[:-10])
                                     subaccindices.append(i)
+                                    existingsubaccs.append(revaccname[:-10])
+                                    existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
+
+                                    if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)"):
+                                        existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
+                                    
+                                    else:
+                                        existingsubtax.append(0)                                        
 
                         subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
 
@@ -1421,13 +1432,13 @@ else:
 
                             initialsubaccname = f"Unnamed Subaccount {i+1}"
 
-                            if i < len(existingsubaccs):
-                                initialsubaccname = existingsubaccs[i]
-
                             initialamt = 0.
                             initialtax = 0.
 
-                            ### ADD PREVIOUS VALUES TO SUBACCOUNT VALUE ENTRIES
+                            if i < len(existingsubaccs):
+                                initialsubaccname = existingsubaccs[i]
+                                initialamt = existingsubamts[i]
+                                initialtax = existingsubtax[i]
 
                             subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
@@ -1440,12 +1451,12 @@ else:
 
                             budgetdata["Account"].append(revaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Tax)")
-                            budgetdata["Amount ($)"].append(subacctax)
+                            budgetdata["Amount ($)"].append(subaccamt*subacctax/100)
                     
 
             if len(selectedexpaccs) > 0:
 
-                if len(selectedrevaccs) > 0:
+                if len(selectedexpaccs) > 0:
                     subaccnumex.write("---")
 
                 st.write("---")
@@ -1456,27 +1467,51 @@ else:
 
                 for expaccname in expaccounts:
                     
-                    subexpaccs = {}
-
+                    existingsubaccs = []
+                    existingsubamts = []
+                    subaccindices = []
+                    
                     if expaccname in selectedexpaccs:
+
+                        initialsubaccnum = 1
 
                         st.subheader(expaccname[:-10])
 
-                        subaccnum = subaccnumex.number_input("**"+expaccname[:-10]+"**:", step=1, min_value=1)
-    
+                        if st.session_state.uploadedbudgetfile:
+                                
+                            initialsubaccnum = 0
+                            
+                            for i in range(len(st.session_state.budgetdata["Account"])):
+                                
+                                if expaccname[:-10] == st.session_state.budgetdata["Account"][i] and st.session_state.budgetdata["Subaccount"][i][-9:] == "(Expense)":
+                                    
+                                    initialsubaccnum += 1
+                                    subaccindices.append(i)
+                                    existingsubaccs.append(expaccname[:-10])
+                                    existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
+
+
+                        subaccnum = subaccnumex.number_input("**"+expaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
+
                         for i in range(subaccnum):
     
                             c1, c2 = st.columns(2)
 
-                            subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=f"Unnamed Subaccount {i+1}")
-                            subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0.)
+                            initialsubaccname = f"Unnamed Subaccount {i+1}"
+
+                            initialamt = 0.
+
+                            if i < len(existingsubaccs):
+                                initialsubaccname = existingsubaccs[i]
+                                initialamt = existingsubamts[i]
+
+                            subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
+                            subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
 
                             budgetdata["Account"].append(expaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Expense)")
                             budgetdata["Amount ($)"].append(subaccamt)
                     
-
-                subexpaccs[subaccname+" (Expense)"] = subaccamt
             
             budgetdf = pd.DataFrame().from_dict(budgetdata)
  
