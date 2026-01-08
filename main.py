@@ -1335,8 +1335,15 @@ else:
             else:
                 st.session_state.uploadedbudgetfile = False
 
+            sidebar.header("Settings:")
+
             monthnos = list(st.session_state.userdata["Month No."])
             monthno = sidebar.number_input("**Month Number:**", step=1, min_value=max(monthnos)+1)
+
+            if st.session_state.uploadedbudgetfile:
+                suggestvales = False
+            else:
+                suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
 
             revaccounts = []
             taxaccounts = []
@@ -1353,7 +1360,6 @@ else:
                 elif "(Expense)" == col[-9:]:
                     expaccounts.append(col)
 
-            
             accselectionex = sidebar.expander("**Selected Accounts**")
             selectedrevaccs = []
             selectedexpaccs = []
@@ -1423,6 +1429,10 @@ else:
                                     
                                     else:
                                         existingsubtax.append(0)                                        
+
+                        elif suggestvalues:
+                            recommendedvals = {}
+                            # FINISH RECOMMENDED VALUES
 
                         subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
 
