@@ -118,6 +118,60 @@ def colSelector(defaultval: bool = True):
 
     return showCols
 
+@st.cache_data
+def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry: int, returndf: bool = False):
+
+    x = data["Month No."][startentry-1:endentry]
+    y = data[ycols].iloc[startentry-1:endentry]
+
+    xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
+    xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+    lr = lreg().fit(xtrain, ytrain)
+
+    predmonthsfmt = [[m] for m in predmonths]
+    pred = lr.predict(predmonthsfmt)
+    preddict = {}
+
+    preddict["Month No."] = predmonths
+    preddict["Month"] = ["N/A" for i in range(len(predmonths))]
+    preddict["Year"] = ["N/A" for i in range(len(predmonths))]
+
+    for title in defaultcols:
+        if title not in defaultcols[:3]:
+            preddict[title] = 0                 
+
+    for c in range(len(ycols)):
+
+        predcol = []
+
+        for i in range(len(pred)):
+            predcol.append(round(pred[i][c], 2))
+
+        preddict[ycols[c]] = predcol
+
+    for col in [c for c in preddict if c not in defaultcols[:3]]:
+
+        if type(preddict[col]) != list:
+            preddict[col] = [preddict[col]]
+
+        for i in range(len(preddict[col])):
+
+            if col[-9:] == "(Revenue)":
+                preddict["Total Revenue"][i] += preddict[col][i]
+
+            if col[-9:] == "(Expense)":
+                preddict["Total Expenses"][i] += preddict[col][i]
+                
+            if col[-5:] == "(Tax)":
+                preddict["Total Tax"][i] += preddict[col][i]
+
+    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+    
+    if returndf:
+        return pd.DataFrame.from_dict(preddict)
+    else:
+        return preddict
+
 if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state or "budgetdata" not in st.session_state or "uploadedbudgetfile" not in st.session_state:
 
     st.session_state.currentids = []
@@ -1028,8 +1082,9 @@ else:
                     maxcols = 10
 
                 gtypes = ["Scatter Plot", "Line Plot", "Linear Regression Plot", "Bar Plot"]
+                graphsettings = sidebar.expander("**Graph Settings**")
 
-                with sidebar.expander("**Graph Settings**"):
+                with graphsettings:
 
                     darkbg = st.checkbox("Graph Dark Mode", value=True)
                     predictdata = st.checkbox("Graph Predicted Data", value=False)
@@ -1051,68 +1106,21 @@ else:
                 selectedcols = []
 
                 cols = st.session_state.userdata.columns
-                ycols = [c for c in cols if c not in defaultcols]
+                ycols = [c for c in cols if c not in defaultcols[:3]]
                 predmonths = 0
 
-                x = st.session_state.userdata["Month No."].iloc[startentry-1:endentry]
-                y = st.session_state.userdata[[c for c in cols if c not in defaultcols[:3]]].iloc[startentry-1:endentry]
+                x = st.session_state.userdata["Month No."][startentry-1:endentry]
+                y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
                 elif predictdata:
                     
-                    predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
-                    predmonthamount = predsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
+                    predmonthamount = graphsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
+                    predmonths = [i+1+endentry for i in range(predmonthamount)]
 
-                    y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
-
-                    xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
-                    xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-
-                    for col in ytrain:
-
-                        lr = lreg().fit(xtrain, ytrain)
-
-                    predmonths = [[i+1+endentry] for i in range(predmonthamount)]
-                    pred = lr.predict(predmonths)
-                    preddict = {}
-
-                    preddict["Month No."] = [m[0] for m in predmonths]
-                    preddict["Month"] = ["N/A" for m in predmonths]
-                    preddict["Year"] = ["N/A" for m in predmonths]
-
-                    for title in defaultcols:
-                        if title not in defaultcols[:3]:
-                            preddict[title] = [0 for m in predmonths]                 
-
-
-                    for c in range(len(ycols)):
-
-                        predcol = []
-
-                        for i in range(len(pred)):
-                            predcol.append(round(pred[i][c], 2))
-
-                        preddict[ycols[c]] = predcol
-
-                    for col in [c for c in preddict if c not in defaultcols[:3]]:
-
-                        for i in range(len(preddict[col])):
-
-                            if col[-9:] == "(Revenue)":
-                                preddict["Total Revenue"][i] += preddict[col][i]
-
-                            if col[-9:] == "(Expense)":
-                                preddict["Total Expenses"][i] += preddict[col][i]
-                                
-                            if col[-5:] == "(Tax)":
-                                preddict["Total Tax"][i] += preddict[col][i]
-
-                        for i in range(len(preddict[col])):
-                            preddict["Net Income"][i] += (preddict["Total Revenue"][i] - preddict["Total Tax"][i] - preddict["Total Expenses"][i])
-
-
+                    preddict = predict(st.session_state.userdata, ycols, predmonths, startentry, endentry)
                     preddf = pd.DataFrame.from_dict(preddict)
 
 
@@ -1192,48 +1200,12 @@ else:
                 else:
 
                     predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
-                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
                     startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
                     endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
+                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
 
-                    x = st.session_state.userdata["Month No."][startentry-1:endentry]
-                    y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
-
-                    xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
-                    xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
-                    lr = lreg().fit(xtrain, ytrain)
-
-                    pred = lr.predict([[predmonth]])
-                    preddict = {}
-
-                    preddict["Month No."] = [predmonth]
-                    preddict["Month"] = ["N/A"]
-                    preddict["Year"] = ["N/A"]
-
-                    for title in defaultcols:
-                        if title not in defaultcols[:3]:
-                            preddict[title] = 0                 
-
-
-                    for i in range(len(ycols)):
-                        preddict[ycols[i]] = round(pred[0][i], 2)
-
-                    for col in [c for c in preddict if c not in defaultcols[:3]]:
-
-                        preddict[col] = [preddict[col]]
-
-                        if col[-9:] == "(Revenue)":
-                            preddict["Total Revenue"][0] += preddict[col][0]
-
-                        if col[-9:] == "(Expense)":
-                            preddict["Total Expenses"][0] += preddict[col][0]
-                            
-                        if col[-5:] == "(Tax)":
-                            preddict["Total Tax"][0] += preddict[col][0]
-
-                    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
-
-                    preddf = pd.DataFrame.from_dict(preddict)
+                    preddict = predict(st.session_state.userdata, ycols, [predmonth], startentry, endentry)
+                    preddf = {}
 
                     if c2:
                         c2.header("Data Prediction")
