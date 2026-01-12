@@ -76,7 +76,7 @@ def cleanData(data: dict):
 
     return data
 
-# Income tracker-specific functions
+# Program-specific functions
 def saveEntries(df, id):
 
     df = cleanDF(df)
@@ -118,8 +118,9 @@ def colSelector(defaultval: bool = True):
 
     return showCols
 
+# Prediction function, used in multiple parts of the program, with cached outputs for better performance
 @st.cache_data
-def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry: int, returndf: bool = False):
+def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry: int, returnasdf: bool = False):
 
     x = data["Month No."][startentry-1:endentry]
     y = data[ycols].iloc[startentry-1:endentry]
@@ -167,7 +168,7 @@ def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry
 
     preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
     
-    if returndf:
+    if returnasdf:
         return pd.DataFrame.from_dict(preddict)
     else:
         return preddict
@@ -1205,11 +1206,11 @@ else:
                     predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
 
                     preddict = predict(st.session_state.userdata, ycols, [predmonth], startentry, endentry)
-                    preddf = {}
+                    preddf = pd.DataFrame.from_dict(preddict)
 
                     if c2:
                         c2.header("Data Prediction")
-                        c2.dataframe(pd.DataFrame.from_dict(preddict), use_container_width=True, hide_index=True)
+                        c2.dataframe(preddf, use_container_width=True, hide_index=True)
 
                     else:
                         st.header("Data Prediction")
@@ -1313,7 +1314,7 @@ else:
             monthno = sidebar.number_input("**Month Number:**", step=1, min_value=max(monthnos)+1)
 
             if st.session_state.uploadedbudgetfile:
-                suggestvales = False
+                suggestvalues = False
             else:
                 suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
 
@@ -1336,23 +1337,34 @@ else:
             selectedrevaccs = []
             selectedexpaccs = []
 
+            if suggestvalues:
+                ycols = []
 
             if len(revaccounts) > 0:
     
                 accselectionex.subheader("Revenue/Tax Accounts")
     
                 for revacc in revaccounts:
+
                     if accselectionex.checkbox(revacc[:-10], True):
+
                         selectedrevaccs.append(revacc)
 
+                        if suggestvalues:
+                            ycols.append(revacc)
+                            ycols.append(f"{revacc[:-10]} (Tax)")
 
             if len(expaccounts) > 0:
     
                 accselectionex.subheader("Expense Accounts")
     
                 for expacc in expaccounts:
+                    
                     if accselectionex.checkbox(expacc[:-10], True):
                         selectedexpaccs.append(expacc)
+
+                        if suggestvalues:
+                            ycols.append(expacc)
 
             subaccnumex = sidebar.expander("**Number of Subaccounts**")
 
@@ -1360,6 +1372,11 @@ else:
             budgetdata["Account"] = []
             budgetdata["Subaccount"] = []
             budgetdata["Amount ($)"] = []
+
+            if suggestvalues:
+                predictdata = predict(st.session_state.userdata, ycols, [max(st.session_state.userdata["Month No."])+1], 1, len(st.session_state.userdata))
+
+            st.write(pd.DataFrame().from_dict(predictdata))
 
             if len(selectedrevaccs) > 0:
 
