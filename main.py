@@ -30,7 +30,7 @@ from sklearn.model_selection import train_test_split as tts
 
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
-# General data cleaning/checking functions
+# General data checking/cleaning/conversion functions
 def isNum(num: str):
     
     try:
@@ -76,6 +76,9 @@ def cleanData(data: dict):
 
     return data
 
+def toDF(data: dict):
+    return pd.DataFrame.from_dict(data)
+
 # Program-specific functions
 def saveEntries(df, id):
 
@@ -120,8 +123,9 @@ def colSelector(defaultval: bool = True):
 
 # Prediction function, used in multiple parts of the program, with cached outputs for better performance
 @st.cache_data
-def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry: int, returnasdf: bool = False):
+def predict(data: dict, predmonths: list, startentry: int, endentry: int, returnasdf: bool = False):
 
+    ycols = [c for c in data if c not in defaultcols[:3]]
     x = data["Month No."][startentry-1:endentry]
     y = data[ycols].iloc[startentry-1:endentry]
 
@@ -169,7 +173,7 @@ def predict(data: dict, ycols: list, predmonths: list, startentry: int, endentry
     preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
     
     if returnasdf:
-        return pd.DataFrame.from_dict(preddict)
+        return toDF(preddict)
     else:
         return preddict
 
@@ -728,7 +732,7 @@ else:
                     for title in defaultcols:
                         newdata[title] = []
 
-                    st.session_state.userdata = pd.DataFrame.from_dict(newdata)
+                    st.session_state.userdata = toDF(newdata)
 
                     saveEntries(st.session_state.userdata, st.session_state.userid)
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
@@ -1073,12 +1077,12 @@ else:
                 st.header("Your Data")
                 st.dataframe(st.session_state.userdata[showCols], use_container_width=True, hide_index=True)                
         
+            ycols = [col for col in st.session_state.userdata.columns if col not in defaultcols[:3]]
+
             if userchoice == "Generate Graphs":
 
-                cols = [c for c in st.session_state.userdata.columns if c not in defaultcols[:3]]
-
-                if len(cols) < 10:
-                    maxcols = len(cols)
+                if len(ycols) < 10:
+                    maxcols = len(ycols)
                 else:
                     maxcols = 10
 
@@ -1105,9 +1109,6 @@ else:
                 plt.ylabel(f"Amount ($)")
 
                 selectedcols = []
-
-                cols = st.session_state.userdata.columns
-                ycols = [c for c in cols if c not in defaultcols[:3]]
                 predmonths = 0
 
                 x = st.session_state.userdata["Month No."][startentry-1:endentry]
@@ -1121,8 +1122,8 @@ else:
                     predmonthamount = graphsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
                     predmonths = [i+1+endentry for i in range(predmonthamount)]
 
-                    preddict = predict(st.session_state.userdata, ycols, predmonths, startentry, endentry)
-                    preddf = pd.DataFrame.from_dict(preddict)
+                    preddict = predict(st.session_state.userdata, predmonths, startentry, endentry)
+                    preddf = toDF(preddict)
 
 
                     if c1:
@@ -1166,7 +1167,7 @@ else:
 
                 for i in range(numcols):
 
-                    selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in cols if col not in selectedcols and col not in defaultcols[:3]])
+                    selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in ycols if col not in selectedcols and col not in defaultcols[:3]])
                     ycol = y[selectedcol].iloc[startentry-1:endentry]
 
                     selectedcols.append(selectedcol)
@@ -1192,9 +1193,6 @@ else:
 
             else:
                 
-                cols = st.session_state.userdata.columns
-                ycols = [c for c in cols if c not in defaultcols]
-
                 if len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
@@ -1205,8 +1203,8 @@ else:
                     endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
                     predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
 
-                    preddict = predict(st.session_state.userdata, ycols, [predmonth], startentry, endentry)
-                    preddf = pd.DataFrame.from_dict(preddict)
+                    preddict = predict(st.session_state.userdata, [predmonth], startentry, endentry)
+                    preddf = toDF(preddict)
 
                     if c2:
                         c2.header("Data Prediction")
@@ -1337,9 +1335,6 @@ else:
             selectedrevaccs = []
             selectedexpaccs = []
 
-            if suggestvalues:
-                ycols = []
-
             if len(revaccounts) > 0:
     
                 accselectionex.subheader("Revenue/Tax Accounts")
@@ -1350,10 +1345,6 @@ else:
 
                         selectedrevaccs.append(revacc)
 
-                        if suggestvalues:
-                            ycols.append(revacc)
-                            ycols.append(f"{revacc[:-10]} (Tax)")
-
             if len(expaccounts) > 0:
     
                 accselectionex.subheader("Expense Accounts")
@@ -1363,9 +1354,6 @@ else:
                     if accselectionex.checkbox(expacc[:-10], True):
                         selectedexpaccs.append(expacc)
 
-                        if suggestvalues:
-                            ycols.append(expacc)
-
             subaccnumex = sidebar.expander("**Number of Subaccounts**")
 
             budgetdata = {}
@@ -1374,9 +1362,7 @@ else:
             budgetdata["Amount ($)"] = []
 
             if suggestvalues:
-                predictdata = predict(st.session_state.userdata, ycols, [max(st.session_state.userdata["Month No."])+1], 1, len(st.session_state.userdata))
-
-            st.write(pd.DataFrame().from_dict(predictdata))
+                recommendedvals = predict(st.session_state.userdata, [max(st.session_state.userdata["Month No."])+1], 1, len(st.session_state.userdata))
 
             if len(selectedrevaccs) > 0:
 
@@ -1417,11 +1403,8 @@ else:
                                         existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
                                     
                                     else:
-                                        existingsubtax.append(0)                                        
+                                        existingsubtax.append(0)
 
-                        elif suggestvalues:
-                            recommendedvals = {}
-                            # FINISH RECOMMENDED VALUES
 
                         subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
 
@@ -1438,6 +1421,16 @@ else:
                                 initialsubaccname = existingsubaccs[i]
                                 initialamt = existingsubamts[i]
                                 initialtax = existingsubtax[i]
+
+                            elif suggestvalues and revaccname in recommendedvals:
+                                
+                                initialsubaccname = "Total"
+                                initialamt = recommendedvals[revaccname][0]
+
+                                if taxaccname in recommendedvals:
+                                    initialtax = recommendedvals[taxaccname][0] / initialamt * 100
+                                else:
+                                    initialtax = 0
 
                             subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
@@ -1503,6 +1496,11 @@ else:
                             if i < len(existingsubaccs):
                                 initialsubaccname = existingsubaccs[i]
                                 initialamt = existingsubamts[i]
+                            
+                            elif suggestvalues and expaccname in recommendedvals:
+                                
+                                initialsubaccname = "Total"
+                                initialamt = recommendedvals[expaccname][0]
 
                             subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)

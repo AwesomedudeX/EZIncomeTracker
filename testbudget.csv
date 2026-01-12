@@ -1,9 +1,10 @@
 Account,Subaccount,Amount ($)
-Unnamed Revenue Account 1,Unnamed Subaccount 1 (Revenue),50.0
-Unnamed Revenue Account 1,Unnamed Subaccount 1 (Tax),5.0
-Unnamed Revenue Account 1,Unnamed Subaccount 2 (Revenue),30.0
-Unnamed Revenue Account 1,Unnamed Subaccount 2 (Tax),2.0
-Unnamed Revenue Account 2,Unnamed Subaccount 1 (Revenue),42.0
-Unnamed Revenue Account 2,Unnamed Subaccount 1 (Tax),21.0
-Unnamed Expense Account 1,Unnamed Subaccount 1 (Expense),10.0
-Unnamed Expense Account 1,Unnamed Subaccount 2 (Expense),15.0
+Salary,Total (Revenue),10000.0
+Salary,Total (Tax),1000.0
+Company Dividends,Total (Revenue),200.0
+Company Dividends,Total (Tax),30.0
+Day Trading Income,Total (Revenue),740.0
+Day Trading Income,Total (Tax),185.0
+Rent,Total (Expense),5000.0
+Deductibles,Total (Expense),1000.0
+Groceries,Total (Expense),468.0
