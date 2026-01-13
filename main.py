@@ -764,8 +764,8 @@ else:
             expenses = {}
             tax = {}
 
-            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=len(existingrevs))
-            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=len(existingexps))
+            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
+            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
 
             st.write("---")
             st.header("Time of Entry")
@@ -778,10 +778,16 @@ else:
                     monthindex = m
                     break
 
-            monthno = c1.number_input("**Editing Entry (Month No.):**", min_value=1, max_value=currentmonthno-1, value=currentmonthno-1)
+            monthno = c1.selectbox("**Editing Entry (Month No.):**", st.session_state.userdata["Month No."], index=lendata-1)
             month = c2.selectbox("**Month**", months, index=monthindex)
             year = c3.number_input("**Year**", currentyear, step=1)
 
+            selectedindex = -1
+
+            for i in range(len(st.session_state.userdata["Month No."])):
+                if monthno == st.session_state.userdata["Month No."][i]:
+                    selectedindex = i
+                    break
 
             if revenuecount > 0:
                 
@@ -850,14 +856,16 @@ else:
                 for i in range(expensecount):
 
                     accname = ""
+                    initialamt = 0.
 
                     if (i < len(existingexps)):
                         accname = existingexps[i][:-10]
-                    
-                    if accname[:23] == "Unnamed Expense Account":
-                        unnamedaccounts += 1
+                        initialamt = st.session_state.userdata[existingexps[i]][selectedindex]
 
                     name = c1.text_input(f"**Expense {i+1}:**", value=accname)
+
+                    if accname[:23] == "Unnamed Expense Account":
+                        unnamedaccounts += 1
 
                     if name == "":
                         unnamedaccounts += 1
@@ -865,12 +873,12 @@ else:
 
                     else:
                         expensecol = f"{name} (Expense)"
-                        
+
                     if expensecol in expenses:
-                        expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+                        expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=initialamt)
 
                     else:
-                        expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
+                        expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=initialamt)
 
                     expenses[expensecol] = round(expenses[expensecol], 2)
 
@@ -987,7 +995,10 @@ else:
 
             st.write("---")
             st.header("Before:")
-            st.dataframe(st.session_state.userdata.iloc[:, ], hide_index=True, use_container_width=True)
+
+            #FIX
+
+            st.dataframe(st.session_state.userdata[st.session_state.userdata.columns][selectedindex], hide_index=True, use_container_width=True)
             st.header("After:")
             st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
@@ -1012,7 +1023,7 @@ else:
                             else:
                                 data[acc] = []
                     
-                        data[acc][monthno-1] = totalvals[acc][0]
+                        data[acc][selectedindex] = totalvals[acc][0]
 
                     data = cleanData(data)
                     newdf = pd.DataFrame().from_dict(data)
