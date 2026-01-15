@@ -666,7 +666,12 @@ else:
                             prevrev = st.session_state.userdata.loc[previndex, revcol]
                             nextrev = st.session_state.userdata.loc[nextindex, revcol]
 
-                            prevtaxrate = prevtax / prevrev
+                            if prevrev != 0:
+                                prevtaxrate = prevtax / prevrev
+
+                            else:
+                                pass# PATCH ALL DIVISION BY 0 ERRORS
+
                             nexttaxrate = nexttax / nextrev
 
                             newtaxrate = prevtaxrate + ( (nexttaxrate - prevtaxrate) / totalgap * prevgap )
@@ -1266,7 +1271,7 @@ else:
 
     elif page == "Plan Your Budget":
         
-        st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is recommended to use **all** fixed (unchanging) accounts for the most **accurate** budget planning.")
+        st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is highly recommended to include **all** fixed-value accounts (accounts with values remain unchanged between months) - as well as any variable accounts (accounts with changing values) - in your plan for the most **accurate** budget planning.")
         st.write(":grey[**Note: You may only use accounts that are present in your income data.**]")
 
         if lendata > 0 and list(st.session_state.userdata.keys()) != defaultcols:
@@ -1438,10 +1443,16 @@ else:
                                 initialsubaccname = "Total"
                                 initialamt = recommendedvals[revaccname][0]
 
-                                if taxaccname in recommendedvals:
+                                if initialamt > 0 and taxaccname in recommendedvals:
                                     initialtax = recommendedvals[taxaccname][0] / initialamt * 100
                                 else:
-                                    initialtax = 0
+                                    initialtax = 0.
+
+                                if not isNum(initialamt):
+                                    initialamt = 0.
+
+                                if not isNum(initialtax):
+                                    initialtax = 0.
 
                             subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
@@ -1512,6 +1523,9 @@ else:
                                 
                                 initialsubaccname = "Total"
                                 initialamt = recommendedvals[expaccname][0]
+
+                                if not isNum(initialamt):
+                                    initialamt = 0
 
                             subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
