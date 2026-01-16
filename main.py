@@ -751,217 +751,188 @@ else:
 
         else:
 
-            existingrevs = []
-            existingexps = []
-            existingtaxes = []
+            editmode = sidebar.radio("**Editing Mode:**", ["Change an Entry", "Remove an Entry"])
+            itemtype = sidebar.radio("**Item to Remove:**", ["Account", "Entry"])
 
-            for col in st.session_state.userdata.columns:
+            c1, c2 = st.columns(2)
 
-                if "(Revenue)" == col[-9:]:
-                    existingrevs.append(col)
-
-                elif "(Expense)" == col[-9:]:
-                    existingexps.append(col)
-
-                elif "(Tax)" == col[-5:]:
-                    existingtaxes.append(col)
-
-            revenue = {}
-            expenses = {}
-            tax = {}
-
-            revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
-            expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
-
-            st.write("---")
-            st.header("Time of Entry")
-
-            c1, c2, c3 = st.columns(3)
-        
-            for m in range(len(months)):
-                    
-                if currentmonth == months[m]:
-                    monthindex = m
-                    break
-
-            monthno = c1.selectbox("**Editing Entry (Month No.):**", st.session_state.userdata["Month No."], index=lendata-1)
-            month = c2.selectbox("**Month**", months, index=monthindex)
-            year = c3.number_input("**Year**", currentyear, step=1)
-
-            selectedindex = -1
-
-            for i in range(len(st.session_state.userdata["Month No."])):
-                if monthno == st.session_state.userdata["Month No."][i]:
-                    selectedindex = i
-                    break
-
-            if revenuecount > 0:
+            # CONVERT HEADER TO SEPARATOR
+            c2.header("**Current Data**")
+            c2.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
                 
+            if editmode == "Remove an Entry":
+
                 st.write("---")
-                st.header("Revenue Sources")
+                
+                if itemtype == "Account":
+                    
+                    accountcols = [col for col in st.session_state.userdata.columns if col not in defaultcols]
+                    removableaccs = []
+
+                    for col in accountcols:
+
+                        if col[-9:] in "(Revenue)":
+                            removableaccs.append(col[:-9]+"(Revenue/Tax)")
+
+                        elif col[-9:] in "(Expense)":
+                            removableaccs.append(col[-9:]+"(Expense)")
+
+                    selectedacc = c1.selectbox("Account to Remove:", removableaccs)
+
+                    # CONVERT HEADER TO SEPARATOR
+                    c1.header("Removable Accounts:")
+                    c1.dataframe(st.session_state.userdata[accountcols], use_container_width=True, hide_index=True)
+
+                else:
+                    pass
+
+
+            else:
+
+                existingrevs = []
+                existingexps = []
+                existingtaxes = []
+
+                for col in st.session_state.userdata.columns:
+
+                    if "(Revenue)" == col[-9:]:
+                        existingrevs.append(col)
+
+                    elif "(Expense)" == col[-9:]:
+                        existingexps.append(col)
+
+                    elif "(Tax)" == col[-5:]:
+                        existingtaxes.append(col)
+
+                revenue = {}
+                expenses = {}
+                tax = {}
+
+                revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
+                expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
+
+                st.write("---")
+                st.header("Time of Entry")
 
                 c1, c2, c3 = st.columns(3)
-                
-                unnamedaccounts = 0
-
-                for i in range(revenuecount):
-
-                    accname = ""
-                    initialamt = 0.
-                    initialtax = 0.
-
-                    if (i < len(existingrevs)):
+            
+                for m in range(len(months)):
                         
-                        accname = existingrevs[i][:-10]
-                        initialamt = st.session_state.userdata[existingrevs[i]][selectedindex]
-                        
-                        if st.session_state.userdata[existingrevs[i]][selectedindex] != 0 and i < len(existingtaxes):
-                            initialtax = st.session_state.userdata[existingtaxes[i]][selectedindex] / st.session_state.userdata[existingrevs[i]][selectedindex] * 100
+                    if currentmonth == months[m]:
+                        monthindex = m
+                        break
 
-                    if accname[:23] == "Unnamed Revenue Account":
-                        unnamedaccounts += 1
+                monthno = c1.selectbox("**Editing Entry (Month No.):**", st.session_state.userdata["Month No."], index=lendata-1)
+                month = c2.selectbox("**Month**", months, index=monthindex)
+                year = c3.number_input("**Year**", currentyear, step=1)
 
-                    name = c1.text_input(f"**Revenue Source {i+1}:**", value=accname)
+                selectedindex = -1
 
-                    if name == "":
-                        unnamedaccounts += 1
-                        revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
-                        taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
+                for i in range(len(st.session_state.userdata["Month No."])):
+                    if monthno == st.session_state.userdata["Month No."][i]:
+                        selectedindex = i
+                        break
 
-                    else:
-                        revenuecol = f"{name} (Revenue)"
-                        taxcol = f"{name} (Tax)"
+                if revenuecount > 0:
+                    
+                    st.write("---")
+                    st.header("Revenue Sources")
 
-                    if revenuecol in revenue:
-                        revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
-                    else:
-                        revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
+                    c1, c2, c3 = st.columns(3)
+                    
+                    unnamedaccounts = 0
 
-                    if taxcol in tax:
-                        tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
-                    else:
-                        tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                    for i in range(revenuecount):
 
-                    revenue[revenuecol] = round(revenue[revenuecol], 2)
-                    tax[taxcol] = round(tax[taxcol], 2)
+                        accname = ""
+                        initialamt = 0.
+                        initialtax = 0.
 
-            if expensecount > 0:
-                
-                st.write("---")
-                st.header("Expenses")
+                        if (i < len(existingrevs)):
+                            
+                            accname = existingrevs[i][:-10]
+                            initialamt = st.session_state.userdata[existingrevs[i]][selectedindex]
+                            
+                            if st.session_state.userdata[existingrevs[i]][selectedindex] != 0 and i < len(existingtaxes):
+                                initialtax = st.session_state.userdata[existingtaxes[i]][selectedindex] / st.session_state.userdata[existingrevs[i]][selectedindex] * 100
 
-                c1, c2 = st.columns(2)
+                        if accname[:23] == "Unnamed Revenue Account":
+                            unnamedaccounts += 1
 
-                unnamedaccounts = 0
+                        name = c1.text_input(f"**Revenue Source {i+1}:**", value=accname)
 
-                for i in range(expensecount):
+                        if name == "":
+                            unnamedaccounts += 1
+                            revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
+                            taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
-                    accname = ""
-                    initialamt = 0.
+                        else:
+                            revenuecol = f"{name} (Revenue)"
+                            taxcol = f"{name} (Tax)"
 
-                    if (i < len(existingexps)):
-                        
-                        accname = existingexps[i][:-10]
-                        initialamt = st.session_state.userdata[existingexps[i]][selectedindex]
+                        if revenuecol in revenue:
+                            revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
+                        else:
+                            revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
-                    name = c1.text_input(f"**Expense {i+1}:**", value=accname)
+                        if taxcol in tax:
+                            tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                        else:
+                            tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
 
-                    if accname[:23] == "Unnamed Expense Account":
-                        unnamedaccounts += 1
+                        revenue[revenuecol] = round(revenue[revenuecol], 2)
+                        tax[taxcol] = round(tax[taxcol], 2)
 
-                    if name == "":
-                        unnamedaccounts += 1
-                        expensecol = f"Unnamed Expense Account {unnamedaccounts} (Expense)"
+                if expensecount > 0:
+                    
+                    st.write("---")
+                    st.header("Expenses")
 
-                    else:
-                        expensecol = f"{name} (Expense)"
+                    c1, c2 = st.columns(2)
 
-                    if expensecol in expenses:
-                        expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
+                    unnamedaccounts = 0
 
-                    else:
-                        expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
+                    for i in range(expensecount):
 
-                    expenses[expensecol] = round(expenses[expensecol], 2)
+                        accname = ""
+                        initialamt = 0.
 
+                        if (i < len(existingexps)):
+                            
+                            accname = existingexps[i][:-10]
+                            initialamt = st.session_state.userdata[existingexps[i]][selectedindex]
 
-            totalrevenue = sum(revenue.values())
-            totalexpenses = sum(expenses.values())
-            totaltax = sum(tax.values())
+                        name = c1.text_input(f"**Expense {i+1}:**", value=accname)
 
-            c1, c2, c3 = st.columns(3)
+                        if accname[:23] == "Unnamed Expense Account":
+                            unnamedaccounts += 1
 
-            netincome = totalrevenue - totalexpenses - totaltax
+                        if name == "":
+                            unnamedaccounts += 1
+                            expensecol = f"Unnamed Expense Account {unnamedaccounts} (Expense)"
 
+                        else:
+                            expensecol = f"{name} (Expense)"
 
-            revenuestr = f"{round(totalrevenue, 2)}"
+                        if expensecol in expenses:
+                            expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
-            if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
-                revenuestr += "0"
+                        else:
+                            expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
-            if (totalrevenue == 0):
-                revenuestr = f"(0.00)"
-
-            expensestr = f"{round(totalexpenses, 2)}"
-
-            if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
-                expensestr += "0"
-
-            if (totalexpenses == 0):
-                expensestr = f"0.00"        
-
-
-            taxstr = f"{round(totaltax, 2)}"
-
-            if (len(taxstr.split(".")[1]) == 1):
-                taxstr += "0"
-
-            if (totaltax == 0):
-                taxstr = f"0.00"        
+                        expenses[expensecol] = round(expenses[expensecol], 2)
 
 
-            netincomestr = f"{np.abs(round(netincome, 2))}"
+                totalrevenue = sum(revenue.values())
+                totalexpenses = sum(expenses.values())
+                totaltax = sum(tax.values())
 
-            if ("." in netincomestr and len(netincomestr.split(".")[1]) == 1):
-                netincomestr += "0"
+                c1, c2, c3 = st.columns(3)
 
-            if netincome < 0:
-                netincomestr = f"({netincomestr})"
-
-            if (netincome == 0):
-                netincomestr = f"(0.00)"        
+                netincome = totalrevenue - totalexpenses - totaltax
 
 
-            totalvals = {
-            
-                "Month No.": [monthno],
-                "Month": [month],
-                "Year": [str(year)],
-                "Total Revenue": [totalrevenue],
-                "Total Expenses": [totalexpenses],
-                "Total Tax": [totaltax],
-                "Net Income": [netincome]
-            
-            }
-
-            totalvalsstr = {
-            
-                "Month No.": [monthno],
-                "Month": [month],
-                "Year": [str(year)],
-                "Total Revenue": [f"$ {revenuestr}"],
-                "Total Expenses": [f"$ ({expensestr})"],
-                "Total Tax": [f"$ ({taxstr})"],
-                "Net Income": [f"$ {netincomestr}"]
-            
-            }
-
-            for revenueacc, taxacc in zip(revenue.keys(), tax.keys()):
-
-                totalvals[revenueacc] = [revenue[revenueacc]]
-                totalvals[taxacc] = [tax[taxacc]]
-
-                revenuestr = f"{round(revenue[revenueacc], 2)}"
+                revenuestr = f"{round(totalrevenue, 2)}"
 
                 if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
                     revenuestr += "0"
@@ -969,91 +940,158 @@ else:
                 if (totalrevenue == 0):
                     revenuestr = f"(0.00)"
 
-                taxstr = f"{round(tax[taxacc], 2)}"
-
-                if ("." in taxstr and len(taxstr.split(".")[1]) == 1):
-                    taxstr += "0"
-
-                if (tax[taxacc] == 0):
-                    taxstr = f"0.00"
-                
-                totalvalsstr[revenueacc] = [f"$ {revenuestr}"]
-                totalvalsstr[taxacc] = [f"$ ({taxstr})"]
-
-            for acc in expenses:
-
-                expensestr = f"{round(expenses[acc], 2)}"
+                expensestr = f"{round(totalexpenses, 2)}"
 
                 if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
                     expensestr += "0"
 
-                if (expenses[acc] == 0):
-                    expensestr = f"0.00"
+                if (totalexpenses == 0):
+                    expensestr = f"0.00"        
 
-                totalvals[acc] = [expenses[acc]]
-                totalvalsstr[acc] = [f"$ ({expensestr})"]
 
-            totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
-            prevvals = pd.DataFrame()
+                taxstr = f"{round(totaltax, 2)}"
 
-            for col in st.session_state.userdata.columns:
+                if (len(taxstr.split(".")[1]) == 1):
+                    taxstr += "0"
+
+                if (totaltax == 0):
+                    taxstr = f"0.00"        
+
+
+                netincomestr = f"{np.abs(round(netincome, 2))}"
+
+                if ("." in netincomestr and len(netincomestr.split(".")[1]) == 1):
+                    netincomestr += "0"
+
+                if netincome < 0:
+                    netincomestr = f"({netincomestr})"
+
+                if (netincome == 0):
+                    netincomestr = f"(0.00)"        
+
+
+                totalvals = {
                 
-                val = st.session_state.userdata[col][selectedindex]
+                    "Month No.": [monthno],
+                    "Month": [month],
+                    "Year": [str(year)],
+                    "Total Revenue": [totalrevenue],
+                    "Total Expenses": [totalexpenses],
+                    "Total Tax": [totaltax],
+                    "Net Income": [netincome]
                 
-                if isNum(val) and col not in defaultcols[:3]:
+                }
 
-                    if col[-9:] in ["(Expense)", "(Tax)"] or col in ["Total Expenses", "Total Tax"]:
-                        val = f"$ ({str(val)})"                        
+                totalvalsstr = {
+                
+                    "Month No.": [monthno],
+                    "Month": [month],
+                    "Year": [str(year)],
+                    "Total Revenue": [f"$ {revenuestr}"],
+                    "Total Expenses": [f"$ ({expensestr})"],
+                    "Total Tax": [f"$ ({taxstr})"],
+                    "Net Income": [f"$ {netincomestr}"]
+                
+                }
 
-                    elif val <= 0:
-                        val = abs(val)
-                        val = f"$ ({str(val)})"                        
+                for revenueacc, taxacc in zip(revenue.keys(), tax.keys()):
 
-                    else:
-                        val = f"$ {val}"
+                    totalvals[revenueacc] = [revenue[revenueacc]]
+                    totalvals[taxacc] = [tax[taxacc]]
 
-                prevvals[col] = [val]
+                    revenuestr = f"{round(revenue[revenueacc], 2)}"
 
-            st.write("---")
-            st.header("Before:")
-            st.dataframe(prevvals, hide_index=True, use_container_width=True)
-            st.header("After:")
-            st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+                    if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
+                        revenuestr += "0"
 
-            if sidebar.button("Save Entry"):
+                    if (totalrevenue == 0):
+                        revenuestr = f"(0.00)"
+
+                    taxstr = f"{round(tax[taxacc], 2)}"
+
+                    if ("." in taxstr and len(taxstr.split(".")[1]) == 1):
+                        taxstr += "0"
+
+                    if (tax[taxacc] == 0):
+                        taxstr = f"0.00"
                     
-                try:
-                
-                    data = {}
+                    totalvalsstr[revenueacc] = [f"$ {revenuestr}"]
+                    totalvalsstr[taxacc] = [f"$ ({taxstr})"]
 
-                    for col in st.session_state.userdata.columns:
+                for acc in expenses:
 
-                        data[col] = []
+                    expensestr = f"{round(expenses[acc], 2)}"
 
-                        for val in st.session_state.userdata[col]:
-                            data[col].append(val)
+                    if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
+                        expensestr += "0"
 
-                    for acc in totalvals:
-                            
-                        if acc not in data:
-                            if len(data["Month No."]) > 1:
-                                data[acc] = [0 for i in range(len(data["Month No."])-1)]
-                            else:
-                                data[acc] = []
+                    if (expenses[acc] == 0):
+                        expensestr = f"0.00"
+
+                    totalvals[acc] = [expenses[acc]]
+                    totalvalsstr[acc] = [f"$ ({expensestr})"]
+
+                totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
+                prevvals = pd.DataFrame()
+
+                for col in st.session_state.userdata.columns:
                     
-                        data[acc][selectedindex] = totalvals[acc][0]
+                    val = st.session_state.userdata[col][selectedindex]
+                    
+                    if isNum(val) and col not in defaultcols[:3]:
 
-                    data = cleanData(data)
-                    newdf = pd.DataFrame().from_dict(data)
-                    saveEntries(newdf, st.session_state.userid)
+                        if col[-9:] in ["(Expense)", "(Tax)"] or col in ["Total Expenses", "Total Tax"]:
+                            val = f"$ ({str(val)})"                        
 
-                    st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                    st.session_state.userdata = cleanDF(st.session_state.userdata)
+                        elif val <= 0:
+                            val = abs(val)
+                            val = f"$ ({str(val)})"                        
 
-                    st.success(f"\nSaved the entry successfully.")
+                        else:
+                            val = f"$ {val}"
 
-                except:
-                    st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
+                    prevvals[col] = [val]
+
+                st.write("---")
+                st.header("Before:")
+                st.dataframe(prevvals, hide_index=True, use_container_width=True)
+                st.header("After:")
+                st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
+
+                if sidebar.button("Save Entry"):
+                        
+                    try:
+                    
+                        data = {}
+
+                        for col in st.session_state.userdata.columns:
+
+                            data[col] = []
+
+                            for val in st.session_state.userdata[col]:
+                                data[col].append(val)
+
+                        for acc in totalvals:
+                                
+                            if acc not in data:
+                                if len(data["Month No."]) > 1:
+                                    data[acc] = [0 for i in range(len(data["Month No."])-1)]
+                                else:
+                                    data[acc] = []
+                        
+                            data[acc][selectedindex] = totalvals[acc][0]
+
+                        data = cleanData(data)
+                        newdf = pd.DataFrame().from_dict(data)
+                        saveEntries(newdf, st.session_state.userid)
+
+                        st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
+                        st.session_state.userdata = cleanDF(st.session_state.userdata)
+
+                        st.success(f"\nSaved the entry successfully.")
+
+                    except:
+                        st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
 
     elif page == "Analyze Your Data":
 
