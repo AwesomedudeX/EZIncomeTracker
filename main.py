@@ -672,10 +672,8 @@ else:
                             else:
                                 prevtaxrate = 0
 
-                            if nextrev != 0:
+                            
                                 nexttaxrate = nexttax / nextrev
-                            else:
-                                nexttaxrate = 0
 
                             newtaxrate = prevtaxrate + ( (nexttaxrate - prevtaxrate) / totalgap * prevgap )
                             newrev = newvals[revcol]
@@ -809,9 +807,16 @@ else:
                 for i in range(revenuecount):
 
                     accname = ""
+                    initialamt = 0.
+                    initialtax = 0.
 
                     if (i < len(existingrevs)):
+                        
                         accname = existingrevs[i][:-10]
+                        initialamt = st.session_state.userdata[existingrevs[i]][selectedindex]
+                        
+                        if st.session_state.userdata[existingrevs[i]][selectedindex] != 0 and i < len(existingtaxes):
+                            initialtax = st.session_state.userdata[existingtaxes[i]][selectedindex] / st.session_state.userdata[existingrevs[i]][selectedindex] * 100
 
                     if accname[:23] == "Unnamed Revenue Account":
                         unnamedaccounts += 1
@@ -819,35 +824,23 @@ else:
                     name = c1.text_input(f"**Revenue Source {i+1}:**", value=accname)
 
                     if name == "":
-                        
                         unnamedaccounts += 1
                         revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
                         taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
-                        if revenuecol in revenue:
-                            revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
-                        else:
-                            revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
-
-                        if taxcol in tax:
-                            tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
-                        else:
-                            tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
-
                     else:
-
                         revenuecol = f"{name} (Revenue)"
                         taxcol = f"{name} (Tax)"
 
-                        if revenuecol in revenue:
-                            revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
-                        else:
-                            revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
+                    if revenuecol in revenue:
+                        revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
+                    else:
+                        revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
-                        if taxcol in tax:
-                            tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
-                        else:
-                            tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                    if taxcol in tax:
+                        tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                    else:
+                        tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
 
                     revenue[revenuecol] = round(revenue[revenuecol], 2)
                     tax[taxcol] = round(tax[taxcol], 2)
@@ -867,6 +860,7 @@ else:
                     initialamt = 0.
 
                     if (i < len(existingexps)):
+                        
                         accname = existingexps[i][:-10]
                         initialamt = st.session_state.userdata[existingexps[i]][selectedindex]
 
@@ -883,10 +877,10 @@ else:
                         expensecol = f"{name} (Expense)"
 
                     if expensecol in expenses:
-                        expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=initialamt)
+                        expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
                     else:
-                        expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=initialamt)
+                        expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
                     expenses[expensecol] = round(expenses[expensecol], 2)
 
@@ -1000,13 +994,29 @@ else:
                 totalvalsstr[acc] = [f"$ ({expensestr})"]
 
             totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
+            prevvals = pd.DataFrame()
+
+            for col in st.session_state.userdata.columns:
+                
+                val = st.session_state.userdata[col][selectedindex]
+                
+                if isNum(val) and col not in defaultcols[:3]:
+
+                    if col[-9:] in ["(Expense)", "(Tax)"] or col in ["Total Expenses", "Total Tax"]:
+                        val = f"$ ({str(val)})"                        
+
+                    elif val <= 0:
+                        val = abs(val)
+                        val = f"$ ({str(val)})"                        
+
+                    else:
+                        val = f"$ {val}"
+
+                prevvals[col] = [val]
 
             st.write("---")
             st.header("Before:")
-
-            #FIX
-
-            st.dataframe(st.session_state.userdata[st.session_state.userdata.columns][selectedindex], hide_index=True, use_container_width=True)
+            st.dataframe(prevvals, hide_index=True, use_container_width=True)
             st.header("After:")
             st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
@@ -1050,7 +1060,7 @@ else:
         st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. Before you begin, it's **highly recommended** that you ensure there is **no missing data**, or any missing data has been **interpolated** on the **Your Income Data** page. To get started, just select what you want to do **below**:")
 
         userchoice = st.radio("**What do you want to do?**", ["Generate Graphs", "Predict Data"])
-        layout = st.radio("**Viewing Layout:**", ["Vertical", "Horizontal"])
+        layout = st.radio("**Viewing Layout:**", ["Horizontal (Side-By-Side)", "Vertical (Stacked)"])
 
         st.write("---")
         
@@ -1419,12 +1429,8 @@ else:
                                     existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
 
                                     if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)"):
-
-                                        if st.session_state.budgetdata["Amount ($)"][i] != 0:
-                                            existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
-                                        else:
-                                            existingsubtax.append(0)                                            
-
+                                        existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
+                                    
                                     else:
                                         existingsubtax.append(0)
 
