@@ -670,9 +670,12 @@ else:
                                 prevtaxrate = prevtax / prevrev
 
                             else:
-                                pass# PATCH ALL DIVISION BY 0 ERRORS
+                                prevtaxrate = 0
 
-                            nexttaxrate = nexttax / nextrev
+                            if nextrev != 0:
+                                nexttaxrate = nexttax / nextrev
+                            else:
+                                nexttaxrate = 0
 
                             newtaxrate = prevtaxrate + ( (nexttaxrate - prevtaxrate) / totalgap * prevgap )
                             newrev = newvals[revcol]
@@ -1416,8 +1419,12 @@ else:
                                     existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
 
                                     if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)"):
-                                        existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
-                                    
+
+                                        if st.session_state.budgetdata["Amount ($)"][i] != 0:
+                                            existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
+                                        else:
+                                            existingsubtax.append(0)                                            
+
                                     else:
                                         existingsubtax.append(0)
 
