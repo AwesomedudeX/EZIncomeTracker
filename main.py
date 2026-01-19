@@ -210,7 +210,7 @@ st.sidebar.title(":green[EZ] Income Tracker")
 
 page = st.sidebar.radio("**Navigation:**", pages)
 
-if sidebar.button("Refresh Page"):
+if sidebar.button("**Refresh Page**"):
     sidebar.success("Page refreshed successfully!")
     
 if len(st.session_state.userdata) > 0:
@@ -219,7 +219,7 @@ if len(st.session_state.userdata) > 0:
         st.session_state.userdata = pd.DataFrame().from_dict(st.session_state.userdata)
 
     st.session_state.userdata = cleanDF(st.session_state.userdata)
-    download = sidebar.download_button("Download Data", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
+    download = sidebar.download_button("**Download Data**", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
 
 if page == "Home":
 
@@ -742,27 +742,26 @@ else:
 
         st.write("---")
 
-        if lendata == 0:
-            st.subheader("Please add an entry before attempting to edit your entries.")
+        accountcols = [col for col in st.session_state.userdata.columns if col not in defaultcols]
+
+        if lendata == 0 or len(accountcols) == 0:
+            st.subheader("Please add an entry with at least one account before attempting to edit your entries.")
 
         else:
 
-            editmode = sidebar.radio("**Editing Mode:**", ["Change an Entry", "Remove an Entry"])
+            st.header("**Current Data**")
+            st.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
                 
-            if editmode == "Remove an Entry":
+            editmode = sidebar.radio("**Editing Mode:**", ["Change an Entry", "Remove an Entry/Account"])
 
-                c1, c2 = st.columns(2)
+            if editmode == "Remove an Entry/Account":
                 
-                c2.header("**Current Data**")
-                c2.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
-
-                itemtype = sidebar.radio("**Item to Remove:**", ["Account", "Entry"])
+                itemtype = sidebar.radio("**Item to Remove:**", ["Entry", "Account"])
 
                 st.write("---")
                 
                 if itemtype == "Account":
                     
-                    accountcols = [col for col in st.session_state.userdata.columns if col not in defaultcols]
                     removableaccs = []
 
                     for col in accountcols:
@@ -771,21 +770,59 @@ else:
                             removableaccs.append(col[:-9]+"(Revenue/Tax)")
 
                         elif col[-9:] in "(Expense)":
-                            removableaccs.append(col[:-9]+"(Expense)")
+                            removableaccs.append(col)
 
                     selectedacc = sidebar.selectbox("**Account to Remove:**", removableaccs)
 
-                    c1.header("Removable Accounts:")
-                    c1.dataframe(st.session_state.userdata[accountcols], use_container_width=True, hide_index=True)
+                    st.header("**Removable Accounts**")
+                    st.dataframe(st.session_state.userdata[accountcols], use_container_width=True, hide_index=True)
+
+                    if sidebar.button("**:red[Remove] Account**"):
+                            
+                        #try:
+                            
+                            allcols = st.session_state.userdata.columns
+
+                            if selectedacc[-13:] == "(Revenue/Tax)":
+                                delcols = [selectedacc[:-13]+"(Revenue)", selectedacc[:-13]+"(Tax)"]
+                            else:
+                                delcols = [selectedacc]
+    
+                            st.session_state.userdata = st.session_state.userdata[[col for col in allcols if col not in delcols]]
+                            saveEntries(st.session_state.userdata, st.session_state.userid)
+
+                            st.success(f"**Removed the {selectedacc} account(s) successfully.**")
+
+                        #except:
+                            #st.error(f"**There was an error in removing the {selectedacc} account(s). Please try again.**")
 
                 else:
-                    pass
+                    
+                    monthno = sidebar.selectbox("**Month to Remove:**", st.session_state.userdata["Month No."], index=len(st.session_state.userdata["Month No."])-1)
 
+                    if sidebar.button("**:red[Remove Entry]**"):
+                        
+                        try:
+
+                            for i in range(len(st.session_state.userdata["Month No."])):
+                                
+                                if monthno == st.session_state.userdata["Month No."][i]:
+
+                                    df = st.session_state.userdata.iloc[:i, :]
+                                    
+                                    if i < lendata-1:
+                                        df.join(st.session_state.userdata.iloc[i+1:, :])
+                                    
+                                    st.write(df)
+
+                                    break
+
+                        except:
+                            st.error(f"There was an error in removing the entry for month {monthno}.")
+
+                st.write("---")
 
             else:
-
-                st.header("**Current Data**")
-                st.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
 
                 existingrevs = []
                 existingexps = []
@@ -1595,7 +1632,7 @@ else:
             st.subheader("Please add at least one entry (with at least one account) to budget with your accounts.")
 
 # REMOVE AFTER RELEASE
-if sidebar.button("Push to GitHub"):
+if sidebar.button("**Push to :blue[GitHub]**"):
     os.system("git add .")
     os.system("git commit -m \"Remote Update\"")
     os.system("git push origin main")        
