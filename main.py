@@ -206,12 +206,6 @@ if "userdata" not in st.session_state or "userid" not in st.session_state or "cu
 
 sidebar = st.sidebar
 
-# REMOVE AFTER RELEASE
-if sidebar.button("Push to GitHub"):
-    os.system("git add .")
-    os.system("git commit -m \"Remote Update\"")
-    os.system("git push origin main")        
-
 st.sidebar.title(":green[EZ] Income Tracker")
 
 page = st.sidebar.radio("**Navigation:**", pages)
@@ -746,21 +740,23 @@ else:
 
     elif page == "Edit Your Entries":
 
+        st.write("---")
+
         if lendata == 0:
             st.subheader("Please add an entry before attempting to edit your entries.")
 
         else:
 
             editmode = sidebar.radio("**Editing Mode:**", ["Change an Entry", "Remove an Entry"])
-            itemtype = sidebar.radio("**Item to Remove:**", ["Account", "Entry"])
-
-            c1, c2 = st.columns(2)
-
-            # CONVERT HEADER TO SEPARATOR
-            c2.header("**Current Data**")
-            c2.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
                 
             if editmode == "Remove an Entry":
+
+                c1, c2 = st.columns(2)
+                
+                c2.header("**Current Data**")
+                c2.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
+
+                itemtype = sidebar.radio("**Item to Remove:**", ["Account", "Entry"])
 
                 st.write("---")
                 
@@ -775,11 +771,10 @@ else:
                             removableaccs.append(col[:-9]+"(Revenue/Tax)")
 
                         elif col[-9:] in "(Expense)":
-                            removableaccs.append(col[-9:]+"(Expense)")
+                            removableaccs.append(col[:-9]+"(Expense)")
 
-                    selectedacc = c1.selectbox("Account to Remove:", removableaccs)
+                    selectedacc = sidebar.selectbox("**Account to Remove:**", removableaccs)
 
-                    # CONVERT HEADER TO SEPARATOR
                     c1.header("Removable Accounts:")
                     c1.dataframe(st.session_state.userdata[accountcols], use_container_width=True, hide_index=True)
 
@@ -788,6 +783,9 @@ else:
 
 
             else:
+
+                st.header("**Current Data**")
+                st.dataframe(st.session_state.userdata, use_container_width=True, hide_index=True)
 
                 existingrevs = []
                 existingexps = []
@@ -1595,3 +1593,9 @@ else:
 
         else:
             st.subheader("Please add at least one entry (with at least one account) to budget with your accounts.")
+
+# REMOVE AFTER RELEASE
+if sidebar.button("Push to GitHub"):
+    os.system("git add .")
+    os.system("git commit -m \"Remote Update\"")
+    os.system("git push origin main")        
