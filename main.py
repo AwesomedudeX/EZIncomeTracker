@@ -800,7 +800,7 @@ else:
                     
                     monthno = sidebar.selectbox("**Month to Remove:**", st.session_state.userdata["Month No."], index=len(st.session_state.userdata["Month No."])-1)
 
-                    if sidebar.button("**:red[Remove Entry]**"):
+                    if sidebar.button("**:red[Remove] Entry**"):
                         
                         try:
 
