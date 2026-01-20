@@ -1,3 +1,5 @@
+# FIX DATA INTERPOLATION MISPLACEMENT BUG AND FALSE GRAPHING EXTRAPOLATION BUG
+
 import streamlit as st
 
 # Webpage Settings
@@ -14,6 +16,7 @@ requiredlibraries = [
 defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
 pages = ["Home", "Create an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
 
 # Importing libraries/modules
 import os
@@ -77,7 +80,7 @@ def cleanData(data: dict):
     return data
 
 def toDF(data: dict):
-    return pd.DataFrame.from_dict(data)
+    return pd.DataFrame().from_dict(data)
 
 # Program-specific functions
 def saveEntries(df, id):
@@ -105,7 +108,7 @@ def sortAccounts(df: pd.DataFrame):
         if col[-9:] == "(Expense)":
             newdata[col] = df[col]
     
-    newdf = pd.DataFrame().from_dict(newdata)
+    newdf = toDF(newdata)
     return cleanDF(newdf)
 
 def colSelector(defaultval: bool = True):
@@ -216,7 +219,7 @@ if sidebar.button("**Refresh Page**"):
 if len(st.session_state.userdata) > 0:
 
     if type(st.session_state.userdata) == dict:
-        st.session_state.userdata = pd.DataFrame().from_dict(st.session_state.userdata)
+        st.session_state.userdata = toDF(st.session_state.userdata)
 
     st.session_state.userdata = cleanDF(st.session_state.userdata)
     download = sidebar.download_button("**Download Data**", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
@@ -519,7 +522,7 @@ else:
             totalvals[acc] = [expenses[acc]]
             totalvalsstr[acc] = [f"$ ({expensestr})"]
 
-        totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
+        totalvalsstr = toDF(totalvalsstr)
 
         st.write("---")
         st.header("Entry Preview")
@@ -567,7 +570,7 @@ else:
                     data[acc].append(totalvals[acc][0])
 
                 data = cleanData(data)
-                newdf = pd.DataFrame().from_dict(data)
+                newdf = toDF(data)
                 saveEntries(newdf, st.session_state.userid)
 
                 print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
@@ -666,8 +669,11 @@ else:
                             else:
                                 prevtaxrate = 0
 
-                            
+                            if nextrev != 0:
                                 nexttaxrate = nexttax / nextrev
+
+                            else:
+                                nexttaxrate = 0
 
                             newtaxrate = prevtaxrate + ( (nexttaxrate - prevtaxrate) / totalgap * prevgap )
                             newrev = newvals[revcol]
@@ -740,6 +746,7 @@ else:
 
     elif page == "Edit Your Entries":
 
+        st.write(":grey[**Note:** You will need to refresh the page or perform an action for the screen to update with your modified data.]")
         st.write("---")
 
         accountcols = [col for col in st.session_state.userdata.columns if col not in defaultcols]
@@ -779,22 +786,37 @@ else:
 
                     if sidebar.button("**:red[Remove] Account**"):
                             
-                        #try:
+                        try:
                             
                             allcols = st.session_state.userdata.columns
 
                             if selectedacc[-13:] == "(Revenue/Tax)":
+                                
                                 delcols = [selectedacc[:-13]+"(Revenue)", selectedacc[:-13]+"(Tax)"]
+
+                                for i in range(len(st.session_state.userdata)):
+
+                                    st.session_state.userdata["Total Revenue"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Revenue)"][i]
+                                    st.session_state.userdata["Total Tax"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Tax)"][i]
+
+                                    st.session_state.userdata["Net Income"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Revenue)"][i]
+                                    st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc[:-13]+"(Tax)"][i]
+
                             else:
                                 delcols = [selectedacc]
+
+                                for i in range(len(st.session_state.userdata)):
+
+                                    st.session_state.userdata["Total Expenses"][i] -= st.session_state.userdata[selectedacc][i]                                    
+                                    st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc][i]
     
                             st.session_state.userdata = st.session_state.userdata[[col for col in allcols if col not in delcols]]
                             saveEntries(st.session_state.userdata, st.session_state.userid)
 
                             st.success(f"**Removed the {selectedacc} account(s) successfully.**")
 
-                        #except:
-                            #st.error(f"**There was an error in removing the {selectedacc} account(s). Please try again.**")
+                        except:
+                            st.error(f"**There was an error in removing the {selectedacc} account(s). Please try again.**")
 
                 else:
                     
@@ -804,21 +826,23 @@ else:
                         
                         try:
 
-                            for i in range(len(st.session_state.userdata["Month No."])):
-                                
-                                if monthno == st.session_state.userdata["Month No."][i]:
+                            data = {}
 
-                                    df = st.session_state.userdata.iloc[:i, :]
-                                    
-                                    if i < lendata-1:
-                                        df.join(st.session_state.userdata.iloc[i+1:, :])
-                                    
-                                    st.write(df)
+                            for col in st.session_state.userdata.columns:
 
-                                    break
+                                data[col] = []
+
+                                for i in range(len(st.session_state.userdata[col])):
+
+                                    if monthno != st.session_state.userdata["Month No."][i]:
+                                        data[col].append(st.session_state.userdata[col][i])
+
 
                         except:
                             st.error(f"There was an error in removing the entry for month {monthno}.")
+
+                        st.session_state.userdata = toDF(data)
+                        saveEntries(st.session_state.userdata, st.session_state.userid)
 
                 st.write("---")
 
@@ -1066,7 +1090,7 @@ else:
                     totalvals[acc] = [expenses[acc]]
                     totalvalsstr[acc] = [f"$ ({expensestr})"]
 
-                totalvalsstr = pd.DataFrame().from_dict(totalvalsstr)
+                totalvalsstr = toDF(totalvalsstr)
                 prevvals = pd.DataFrame()
 
                 for col in st.session_state.userdata.columns:
@@ -1117,7 +1141,7 @@ else:
                             data[acc][selectedindex] = totalvals[acc][0]
 
                         data = cleanData(data)
-                        newdf = pd.DataFrame().from_dict(data)
+                        newdf = toDF(data)
                         saveEntries(newdf, st.session_state.userid)
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
@@ -1257,7 +1281,7 @@ else:
 
 
                     data = cleanData(data)
-                    y = pd.DataFrame().from_dict(data)
+                    y = toDF(data)
 
                     endentry += predmonthamount
                     x = y["Month No."].iloc[startentry-1:endentry]
@@ -1338,7 +1362,7 @@ else:
 
 
                             data = cleanData(data)
-                            newdf = pd.DataFrame().from_dict(data)
+                            newdf = toDF(data)
                             saveEntries(newdf, st.session_state.userid)
 
                             print(f"\nEntry created sucessfully for User {st.session_state.userid}.")
@@ -1501,9 +1525,9 @@ else:
                                     existingsubaccs.append(revaccname[:-10])
                                     existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
 
-                                    if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)"):
+                                    if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)") and st.session_state.budgetdata["Amount ($)"][i] != 0:
                                         existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
-                                    
+
                                     else:
                                         existingsubtax.append(0)
 
@@ -1621,7 +1645,7 @@ else:
                             budgetdata["Amount ($)"].append(subaccamt)
                     
             
-            budgetdf = pd.DataFrame().from_dict(budgetdata)
+            budgetdf = toDF(budgetdata)
  
             st.write("---")
             st.dataframe(budgetdf, use_container_width=True, hide_index=True)
