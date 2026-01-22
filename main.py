@@ -1,5 +1,3 @@
-# FIX DATA INTERPOLATION MISPLACEMENT BUG
-
 import streamlit as st
 
 # Webpage Settings
@@ -702,17 +700,18 @@ else:
 
                     for col in st.session_state.userdata:
 
-                        data[col] = [val for val in st.session_state.userdata[col]]
-                        data[col].insert(nextindex, newvals[col])
+                        data[col] = []
+
+                        for i in range(lendata):
+                            
+                            data[col].append(st.session_state.userdata[col][i])
+
+                            if i < lendata-1 and st.session_state.userdata["Month No."][i] < newvals["Month No."] and st.session_state.userdata["Month No."][i+1] > newvals["Month No."]:
+                                data[col].append(newvals[col])
                     
                     if st.button("Add Interpolated Data"):
 
-                        newdf = pd.DataFrame()
-
-                        for col in data:
-                            newdf[col] = data[col]
-
-                        saveEntries(newdf, st.session_state.userid)
+                        saveEntries(toDF(data), st.session_state.userid)
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                         st.session_state.userdata = cleanDF(st.session_state.userdata)
@@ -829,27 +828,29 @@ else:
                     
                     monthno = sidebar.selectbox("**Month to Remove:**", st.session_state.userdata["Month No."], index=len(st.session_state.userdata["Month No."])-1)
 
+                    data = {}
+
+                    for col in st.session_state.userdata.columns:
+
+                        data[col] = []
+
+                        for i in range(len(st.session_state.userdata[col])):
+
+                            if monthno != st.session_state.userdata["Month No."][i]:
+                                data[col].append(st.session_state.userdata[col][i])
+
+                    st.header("After Removal:")
+                    st.dataframe(toDF(data))
+
                     if sidebar.button("**:red[Remove] Entry**"):
                         
                         try:
-
-                            data = {}
-
-                            for col in st.session_state.userdata.columns:
-
-                                data[col] = []
-
-                                for i in range(len(st.session_state.userdata[col])):
-
-                                    if monthno != st.session_state.userdata["Month No."][i]:
-                                        data[col].append(st.session_state.userdata[col][i])
-
+                            st.session_state.userdata = toDF(data)
+                            saveEntries(st.session_state.userdata, st.session_state.userid)
+                            st.success(f"The entry for month {monthno} was removed successfully.")
 
                         except:
                             st.error(f"There was an error in removing the entry for month {monthno}.")
-
-                        st.session_state.userdata = toDF(data)
-                        saveEntries(st.session_state.userdata, st.session_state.userid)
 
                 st.write("---")
 
