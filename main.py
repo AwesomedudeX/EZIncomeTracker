@@ -1,4 +1,4 @@
-# FIX DATA INTERPOLATION MISPLACEMENT BUG AND FALSE GRAPHING EXTRAPOLATION BUG
+# FIX DATA INTERPOLATION MISPLACEMENT BUG
 
 import streamlit as st
 
@@ -157,12 +157,19 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
 
         preddict[ycols[c]] = predcol
 
-    for col in [c for c in preddict if c not in defaultcols[:3]]:
+    for col in preddict:
 
         if type(preddict[col]) != list:
             preddict[col] = [preddict[col]]
 
-        for i in range(len(preddict[col])):
+    for i in range(len(preddict[col])):
+
+        preddict["Total Revenue"][i] = 0
+        preddict["Total Expenses"][i] = 0
+        preddict["Total Tax"][i] = 0
+        preddict["Net Income"][i] = 0
+
+        for col in [c for c in preddict if c not in defaultcols[:3]]:
 
             if col[-9:] == "(Revenue)":
                 preddict["Total Revenue"][i] += preddict[col][i]
@@ -173,7 +180,7 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
             if col[-5:] == "(Tax)":
                 preddict["Total Tax"][i] += preddict[col][i]
 
-    preddict["Net Income"] += (preddict["Total Revenue"][0] - preddict["Total Tax"][0] - preddict["Total Expenses"][0])
+        preddict["Net Income"][i] += (preddict["Total Revenue"][i] - preddict["Total Tax"][i] - preddict["Total Expenses"][i])
     
     if returnasdf:
         return toDF(preddict)
@@ -1163,7 +1170,7 @@ else:
         
         if lendata > 1:
 
-            if layout == "Vertical":
+            if layout == "Vertical (Stacked)":
 
                 c1 = False
                 c2 = False
@@ -1299,21 +1306,24 @@ else:
                     selectedcols.append(selectedcol)
 
                     if gtype == "Scatter Plot":
-                        sn.scatterplot(x=x, y=ycol)
+                        sn.scatterplot(x=x, y=ycol, label=selectedcol)
 
                     elif gtype == "Line Plot":
-                        sn.lineplot(x=x, y=ycol)
+                        sn.lineplot(x=x, y=ycol, label=selectedcol)
 
                     elif gtype == "Linear Regression Plot":
-                        sn.regplot(x=x, y=ycol)
+                        sn.regplot(x=x, y=ycol, label=selectedcol)
 
                     elif gtype == "Bar Plot":
-                        sn.barplot(x=x, y=ycol)
-                
+                        sn.barplot(x=x, y=ycol, label=selectedcol)
+
+                plt.legend()
+
                 if c2:
                     c2.header("Graph Display")
                     c2.pyplot(fig)
                 else:
+                    st.write("---")
                     st.header("Graph Display")
                     st.pyplot(fig)
 
