@@ -1,3 +1,4 @@
+# ADD DEDUCTIBLES COLUMN PATCH TO: Create an Entry, Your Income Data, Edit Your Entries, Analyze Your Data, Plan Your Budget
 import streamlit as st
 
 # Webpage Settings
@@ -46,6 +47,15 @@ def isNum(num: str):
             return False
         
     return True
+
+def isInt(num: str):
+
+    try:
+        tempval = int(num)
+        return True
+
+    except:
+        return False
 
 def cleanDF(df: pd.DataFrame):
     
@@ -242,28 +252,56 @@ if page == "Home":
         try:
 
             df = pd.read_csv(datafile)
-            lendata = len(st.session_state.userdata)
+            validdata = True
+            invalidmsg = ""
 
-            st.success("Your data file was uploaded successfully!")
+            for col in df:
 
-            if st.session_state.userid not in st.session_state.currentids and lendata > 0:
+                for val in df[col]:
 
-                import users
+                    validdata = True
 
-                st.session_state.currentids = users.userids
-                st.session_state.userid = st.session_state.currentids[-1] + 1
-                st.session_state.currentids.append(st.session_state.userid)
-                write = f"userids = {st.session_state.currentids}"
+                    if col not in defaultcols[:3] and not isNum(val):
+                        validata = False
+                        invalidmsg += "- There are text values in your data that should be numerical values.\n"
 
-                try:
-                    open("users.py", "w").write(write)
-                    print(f"\nAdded User {st.session_state.userid} successfully and saved IDs to file.")
-                except:
-                    print(f"\nCould not add User {st.session_state.userid}.")
+                    if col == "Month No." and not isInt(val):
+                        validdata = False
+                        invalidmsg += "- There is a `Month No.` value that is not an integer (greater than 0)."
 
-            df = cleanDF(df)
-            st.session_state.userdata = df
-            saveEntries(st.session_state.userdata, st.session_state.userid)
+                    if not validdata:
+                        break
+
+                if not validdata:
+                    break
+
+            if validdata:
+
+                lendata = len(st.session_state.userdata)
+
+                st.success("Your data file was uploaded successfully!")
+
+                if st.session_state.userid not in st.session_state.currentids and lendata > 0:
+
+                    import users
+
+                    st.session_state.currentids = users.userids
+                    st.session_state.userid = st.session_state.currentids[-1] + 1
+                    st.session_state.currentids.append(st.session_state.userid)
+                    write = f"userids = {st.session_state.currentids}"
+
+                    try:
+                        open("users.py", "w").write(write)
+                        print(f"\nAdded User {st.session_state.userid} successfully and saved IDs to file.")
+                    except:
+                        print(f"\nCould not add User {st.session_state.userid}.")
+
+                df = cleanDF(df)
+                st.session_state.userdata = df
+                saveEntries(st.session_state.userdata, st.session_state.userid)
+
+            else:
+                st.error("Please upload a valid data file.")
 
         except:
             st.error("There was an issue in uploading your file. Please try again.")
