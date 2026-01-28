@@ -255,19 +255,26 @@ if page == "Home":
             validdata = True
             invalidmsg = ""
 
+            for col in defaultcols:
+                if col not in df.columns:
+                    invalidmsg += f"- The data is missing the {col} column.\n"
+                    validdata = False
+
             for col in df:
 
                 for val in df[col]:
 
-                    validdata = True
-
-                    if col not in defaultcols[:3] and not isNum(val):
-                        validata = False
-                        invalidmsg += "- There are text values in your data that should be numerical values.\n"
-
                     if col == "Month No." and not isInt(val):
                         validdata = False
-                        invalidmsg += "- There is a `Month No.` value that is not an integer (greater than 0)."
+                        invalidmsg += "- There is a `Month No.` value that is not an integer (greater than 0).\n"
+
+                    if col not in defaultcols[1:3] and not isNum(val):
+                        validdata = False
+                        invalidmsg += "- There are values in your data that are not related to the date of the entry, and are not numerical values.\n"
+
+                    if col not in defaultcols and col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-12:] != "(Deductible)":
+                        validdata = False
+                        invalidmsg += "- There is an invalid column in your data.\n"
 
                     if not validdata:
                         break
@@ -301,7 +308,7 @@ if page == "Home":
                 saveEntries(st.session_state.userdata, st.session_state.userid)
 
             else:
-                st.error("Please upload a valid data file.")
+                st.error("This is an invalid data file. Here's why:\n\n"+invalidmsg)
 
         except:
             st.error("There was an issue in uploading your file. Please try again.")
