@@ -12,7 +12,7 @@ requiredlibraries = [
     "seaborn",
     "sklearn"
 ]
-defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Expenses", "Total Tax", "Net Income"]
+defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Deductibles", "Total Expenses", "Total Tax", "Net Income"]
 pages = ["Home", "Create an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
@@ -257,7 +257,7 @@ if page == "Home":
 
             for col in defaultcols:
                 if col not in df.columns:
-                    invalidmsg += f"- The data is missing the {col} column.\n"
+                    invalidmsg += f"- The data is missing the **{col}** column.\n"
                     validdata = False
 
             for col in df:
@@ -274,7 +274,7 @@ if page == "Home":
 
                     if col not in defaultcols and col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-12:] != "(Deductible)":
                         validdata = False
-                        invalidmsg += "- There is an invalid column in your data.\n"
+                        invalidmsg += f"- There is an invalid column in your data (**{col}**).\n"
 
                     if not validdata:
                         break
@@ -338,11 +338,13 @@ else:
     else:
         currentmonthno = 1
 
+    # TEST
     if page == "Create an Entry":
 
         st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
 
         existingrevs = []
+        existingdbs = []
         existingexps = []
         existingtaxes = []
 
@@ -351,6 +353,9 @@ else:
             if "(Revenue)" == col[-9:]:
                 existingrevs.append(col)
 
+            elif "(Deductible)" == col[-12:]:
+                existingdbs.append(col)
+
             elif "(Expense)" == col[-9:]:
                 existingexps.append(col)
 
@@ -358,10 +363,12 @@ else:
                 existingtaxes.append(col)
 
         revenue = {}
+        deductibles = {}
         expenses = {}
         tax = {}
 
         revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
+        deductiblescount = sidebar.number_input("**Number of Deductible Accounts:**", step=1, value=len(existingdbs), min_value=0)
         expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
 
         st.write("---")
@@ -392,7 +399,7 @@ else:
 
             for i in range(revenuecount):
 
-                c1, c2, c3 = st.columns(3)
+                c1, c2, c3, c4 = st.columns(4)
     
                 accname = ""
 
@@ -408,10 +415,12 @@ else:
                     
                     unnamedaccounts += 1
                     revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
+                    dbcol = f"Unnamed Deductible Account {unnamedaccounts} (Deductible)"
                     taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
                 else:
                     revenuecol = f"{name} (Revenue)"
+                    dbcol = f"{name} (Deductible)"
                     taxcol = f"{name} (Tax)"
 
                 if revenuecol in revenue:
@@ -419,10 +428,15 @@ else:
                 else:
                     revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
 
-                if taxcol in tax:
-                    tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                if dbcol in deductibles:
+                    deductibles[dbcol] += c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0.)
                 else:
-                    tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                    deductibles[dbcol] = c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0.)
+
+                if taxcol in tax:
+                    tax[taxcol] += revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
+                else:
+                    tax[taxcol] = revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
 
                 revenue[revenuecol] = round(revenue[revenuecol], 2)
                 tax[taxcol] = round(tax[taxcol], 2)
@@ -465,13 +479,12 @@ else:
 
 
         totalrevenue = sum(revenue.values())
+        totaldbs = sum(deductibles.values())
         totalexpenses = sum(expenses.values())
         totaltax = sum(tax.values())
 
-        c1, c2, c3 = st.columns(3)
-
-        netincome = totalrevenue - totalexpenses - totaltax
-
+        netincome = totalrevenue - totaldbs - totaltax
+        savings = netincome - totalexpenses
 
         revenuestr = f"{round(totalrevenue, 2)}"
 
@@ -481,14 +494,15 @@ else:
         if (totalrevenue == 0):
             revenuestr = f"(0.00)"
 
-        expensestr = f"{round(totalexpenses, 2)}"
 
-        if ("." in expensestr and len(expensestr) > 1 and len(expensestr.split(".")[1]) == "1"):
-            expensestr += "0"
+        dbstr = f"{round(totaldbs, 2)}"
 
-        if (totalexpenses == 0):
-            expensestr = f"0.00"        
+        if ("." in dbstr and len(dbstr) > 1 and len(dbstr.split(".")[1]) == "1"):
+            dbstr += "0"
 
+        if (totaldbs == 0):
+            dbstr = f"(0.00)"
+            
 
         taxstr = f"{round(totaltax, 2)}"
 
@@ -496,7 +510,16 @@ else:
             taxstr += "0"
 
         if (totaltax == 0):
-            taxstr = f"0.00"        
+            taxstr = f"0.00"   
+
+
+        expensestr = f"{round(totalexpenses, 2)}"
+
+        if ("." in expensestr and len(expensestr) > 1 and len(expensestr.split(".")[1]) == "1"):
+            expensestr += "0"
+
+        if (totalexpenses == 0):
+            expensestr = f"0.00"        
 
 
         netincomestr = f"{np.abs(round(netincome, 2))}"
@@ -517,8 +540,9 @@ else:
             "Month": [month],
             "Year": [str(year)],
             "Total Revenue": [totalrevenue],
-            "Total Expenses": [totalexpenses],
+            "Total Deductibles": [totaldbs],
             "Total Tax": [totaltax],
+            "Total Expenses": [totalexpenses],
             "Net Income": [netincome]
         
         }
@@ -529,15 +553,21 @@ else:
             "Month": [month],
             "Year": [str(year)],
             "Total Revenue": [f"$ {revenuestr}"],
-            "Total Expenses": [f"$ ({expensestr})"],
+            "Total Deductibles": [f"$ {dbstr}"],
             "Total Tax": [f"$ ({taxstr})"],
+            "Total Expenses": [f"$ ({expensestr})"],
             "Net Income": [f"$ {netincomestr}"]
         
         }
 
-        for revenueacc, taxacc in zip(revenue.keys(), tax.keys()):
+        for i in range(len(revenue)):
+
+            revenueacc = list(revenue.keys())[i]
+            dbacc = list(deductibles.keys())[i]
+            taxacc = list(tax.keys())[i]
 
             totalvals[revenueacc] = [revenue[revenueacc]]
+            totalvals[dbacc] = [revenue[revenueacc]]
             totalvals[taxacc] = [tax[taxacc]]
 
             revenuestr = f"{round(revenue[revenueacc], 2)}"
@@ -548,6 +578,14 @@ else:
             if (totalrevenue == 0):
                 revenuestr = f"(0.00)"
 
+            dbstr = f"{round(deductibles[dbacc], 2)}"
+
+            if ("." in dbstr and len(dbstr.split(".")[1]) == 1):
+                dbstr += "0"
+
+            if (totaldbs == 0):
+                dbstr = f"(0.00)"
+
             taxstr = f"{round(tax[taxacc], 2)}"
 
             if ("." in taxstr and len(taxstr.split(".")[1]) == 1):
@@ -557,6 +595,7 @@ else:
                 taxstr = f"0.00"
             
             totalvalsstr[revenueacc] = [f"$ {revenuestr}"]
+            totalvalsstr[dbacc] = [f"$ {dbstr}"]
             totalvalsstr[taxacc] = [f"$ ({taxstr})"]
 
         for acc in expenses:
