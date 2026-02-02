@@ -1,4 +1,4 @@
-# ADD DEDUCTIBLES COLUMN PATCH TO: Create an Entry, Your Income Data, Edit Your Entries, Analyze Your Data, Plan Your Budget
+# ADD DEDUCTIBLES COLUMN PATCH TO: Edit Your Entries, Analyze Your Data, Plan Your Budget
 import streamlit as st
 
 # Webpage Settings
@@ -12,7 +12,7 @@ requiredlibraries = [
     "seaborn",
     "sklearn"
 ]
-defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Deductibles", "Total Expenses", "Total Tax", "Net Income"]
+defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Deductibles", "Total Expenses", "Total Tax", "Net Income", "Savings/Loss"]
 pages = ["Home", "Create an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
@@ -32,7 +32,7 @@ from sklearn.model_selection import train_test_split as tts
 
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
-# General data checking/cleaning/conversion functions
+# General data functions
 def isNum(num: str):
     
     try:
@@ -57,27 +57,43 @@ def isInt(num: str):
     except:
         return False
 
-def cleanDF(df: pd.DataFrame):
+def toDF(data: dict):
+    return pd.DataFrame().from_dict(data)
+
+# Program-specific functions
+@st.cache_data
+def addToDict(userdata: pd.DataFrame, totalvals: dict):
     
-    try:
+    data = {}
 
-        for col in df.columns:
-            if "Unnamed:" in col and "(Revenue)" not in col and "(Expense)" not in col and "(Tax)" not in col:
-                df.drop(col, axis='columns', inplace=True)
+    for col in userdata.columns:
 
-        print(f"User {st.session_state.userid}'s data was cleaned successfully.")
+        data[col] = []
 
-    except:
-        print(f"ERROR: Could not clean User {st.session_state.userid}'s data.")
+        for val in userdata[col]:
+            data[col].append(val)
 
-    return df
+        if col not in totalvals:
+            data[col].append(0)
+
+    for acc in totalvals:
+            
+        if acc not in data:
+            if len(data["Month No."]) > 1:
+                data[acc] = [0 for i in range(len(data["Month No."])-1)]
+            else:
+                data[acc] = []
+    
+        data[acc].append(totalvals[acc][0])
+
+    return data
 
 def cleanData(data: dict):
     
     try:
 
         for col in data:
-            if "Unnamed:" in col and "(Revenue)" not in col and "(Expense)" not in col and "(Tax)" not in col:
+            if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
                 del data[col]
 
         print(f"User {st.session_state.userid}'s data was cleaned successfully.")
@@ -87,10 +103,21 @@ def cleanData(data: dict):
 
     return data
 
-def toDF(data: dict):
-    return pd.DataFrame().from_dict(data)
+def cleanDF(df: pd.DataFrame):
+    
+    try:
 
-# Program-specific functions
+        for col in df.columns:
+            if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
+                df.drop(col, axis='columns', inplace=True)
+
+        print(f"User {st.session_state.userid}'s data was cleaned successfully.")
+
+    except:
+        print(f"ERROR: Could not clean User {st.session_state.userid}'s data.")
+
+    return df
+
 def saveEntries(df, id):
 
     df = cleanDF(df)
@@ -104,12 +131,13 @@ def saveEntries(df, id):
     except:
         print(f"\nERROR: Could not save User {id}'s data.")
 
+@st.cache_data
 def sortAccounts(df: pd.DataFrame):
 
     newdata = {}
 
     for col in df.columns:
-        if col in defaultcols or col[-9:] == "(Revenue)" or col[-5:] == "(Tax)":
+        if col in defaultcols or col[-9:] == "(Revenue)" or col[-13:] == "(Deductibles)" or col[-5:] == "(Tax)":
             newdata[col] = df[col]
 
     for col in df.columns:
@@ -272,7 +300,7 @@ if page == "Home":
                         validdata = False
                         invalidmsg += "- There are values in your data that are not related to the date of the entry, and are not numerical values.\n"
 
-                    if col not in defaultcols and col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-12:] != "(Deductible)":
+                    if col not in defaultcols and col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)":
                         validdata = False
                         invalidmsg += f"- There is an invalid column in your data (**{col}**).\n"
 
@@ -338,7 +366,7 @@ else:
     else:
         currentmonthno = 1
 
-    # TEST
+
     if page == "Create an Entry":
 
         st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
@@ -353,7 +381,7 @@ else:
             if "(Revenue)" == col[-9:]:
                 existingrevs.append(col)
 
-            elif "(Deductible)" == col[-12:]:
+            elif "(Deductibles)" == col[-13:]:
                 existingdbs.append(col)
 
             elif "(Expense)" == col[-9:]:
@@ -368,7 +396,6 @@ else:
         tax = {}
 
         revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
-        deductiblescount = sidebar.number_input("**Number of Deductible Accounts:**", step=1, value=len(existingdbs), min_value=0)
         expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
 
         st.write("---")
@@ -415,12 +442,12 @@ else:
                     
                     unnamedaccounts += 1
                     revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
-                    dbcol = f"Unnamed Deductible Account {unnamedaccounts} (Deductible)"
+                    dbcol = f"Unnamed Deductible Account {unnamedaccounts} (Deductibles)"
                     taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
                 else:
                     revenuecol = f"{name} (Revenue)"
-                    dbcol = f"{name} (Deductible)"
+                    dbcol = f"{name} (Deductibles)"
                     taxcol = f"{name} (Tax)"
 
                 if revenuecol in revenue:
@@ -439,6 +466,7 @@ else:
                     tax[taxcol] = revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
 
                 revenue[revenuecol] = round(revenue[revenuecol], 2)
+                deductibles[dbcol] = round(deductibles[dbcol], 2)
                 tax[taxcol] = round(tax[taxcol], 2)
 
         if expensecount > 0:
@@ -533,6 +561,16 @@ else:
         if (netincome == 0):
             netincomestr = f"(0.00)"        
 
+        savingsstr = f"{np.abs(round(savings, 2))}"
+
+        if ("." in savingsstr and len(savingsstr.split(".")[1]) == 1):
+            savingsstr += "0"
+
+        if savings < 0:
+            savingsstr = f"({savingsstr})"
+
+        if (savings == 0):
+            savingsstr = f"(0.00)"        
 
         totalvals = {
         
@@ -543,7 +581,8 @@ else:
             "Total Deductibles": [totaldbs],
             "Total Tax": [totaltax],
             "Total Expenses": [totalexpenses],
-            "Net Income": [netincome]
+            "Net Income": [netincome],
+            "Savings/Loss": [f"$ {savings}"]
         
         }
 
@@ -556,7 +595,8 @@ else:
             "Total Deductibles": [f"$ {dbstr}"],
             "Total Tax": [f"$ ({taxstr})"],
             "Total Expenses": [f"$ ({expensestr})"],
-            "Net Income": [f"$ {netincomestr}"]
+            "Net Income": [f"$ {netincomestr}"],
+            "Savings/Loss": [f"$ {savingsstr}"]
         
         }
 
@@ -567,7 +607,7 @@ else:
             taxacc = list(tax.keys())[i]
 
             totalvals[revenueacc] = [revenue[revenueacc]]
-            totalvals[dbacc] = [revenue[revenueacc]]
+            totalvals[dbacc] = [deductibles[dbacc]]
             totalvals[taxacc] = [tax[taxacc]]
 
             revenuestr = f"{round(revenue[revenueacc], 2)}"
@@ -617,7 +657,9 @@ else:
         st.header("Entry Preview")
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
-        if sidebar.button("Add an Entry"):
+        data = addToDict(st.session_state.userdata, totalvals)
+
+        if sidebar.button("**:green[Add] an Entry**"):
                 
             if st.session_state.userid not in st.session_state.currentids and lendata > 0:
 
@@ -635,29 +677,8 @@ else:
                     print(f"\nCould not add User {st.session_state.userid}.")
 
             try:
+
             
-                data = {}
-
-                for col in st.session_state.userdata.columns:
-
-                    data[col] = []
-
-                    for val in st.session_state.userdata[col]:
-                        data[col].append(val)
-
-                    if col not in totalvals:
-                        data[col].append(0)
-
-                for acc in totalvals:
-                        
-                    if acc not in data:
-                        if len(data["Month No."]) > 1:
-                            data[acc] = [0 for i in range(len(data["Month No."])-1)]
-                        else:
-                            data[acc] = []
-                
-                    data[acc].append(totalvals[acc][0])
-
                 data = cleanData(data)
                 newdf = toDF(data)
                 saveEntries(newdf, st.session_state.userid)
@@ -864,7 +885,7 @@ else:
                     for col in accountcols:
 
                         if col[-9:] in "(Revenue)":
-                            removableaccs.append(col[:-9]+"(Revenue/Tax)")
+                            removableaccs.append(col[:-9]+"(Revenue/Deductibles/Tax)")
 
                         elif col[-9:] in "(Expense)":
                             removableaccs.append(col)
@@ -880,26 +901,34 @@ else:
                             
                             allcols = st.session_state.userdata.columns
 
-                            if selectedacc[-13:] == "(Revenue/Tax)":
+                            if selectedacc[-25:] == "(Revenue/Deductibles/Tax)":
                                 
-                                delcols = [selectedacc[:-13]+"(Revenue)", selectedacc[:-13]+"(Tax)"]
+                                delcols = [selectedacc[:-25]+"(Revenue)", selectedacc[:-25]+"(Deductibles)", selectedacc[:-25]+"(Tax)"]
 
                                 for i in range(len(st.session_state.userdata)):
 
-                                    st.session_state.userdata["Total Revenue"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Revenue)"][i]
-                                    st.session_state.userdata["Total Tax"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Tax)"][i]
+                                    st.session_state.userdata["Total Revenue"][i] -= st.session_state.userdata[selectedacc[:-25]+"(Revenue)"][i]
+                                    st.session_state.userdata["Total Deductibles"][i] -= st.session_state.userdata[selectedacc[:-25]+"(Deductibles)"][i]
+                                    st.session_state.userdata["Total Tax"][i] -= st.session_state.userdata[selectedacc[:-25]+"(Tax)"][i]
 
-                                    st.session_state.userdata["Net Income"][i] -= st.session_state.userdata[selectedacc[:-13]+"(Revenue)"][i]
-                                    st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc[:-13]+"(Tax)"][i]
+                                    st.session_state.userdata["Net Income"][i] -= st.session_state.userdata[selectedacc[:-25]+"(Revenue)"][i]
+                                    st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc[:-25]+"(Deductibles)"][i]
+                                    st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc[:-25]+"(Tax)"][i]
+
+                                    st.session_state.userdata["Savings/Loss"][i] -= st.session_state.userdata[selectedacc[:-25]+"(Revenue)"][i]
+                                    st.session_state.userdata["Savings/Loss"][i] += st.session_state.userdata[selectedacc[:-25]+"(Deductibles)"][i]
+                                    st.session_state.userdata["Savings/Loss"][i] += st.session_state.userdata[selectedacc[:-25]+"(Tax)"][i]
 
                             else:
+
                                 delcols = [selectedacc]
 
                                 for i in range(len(st.session_state.userdata)):
 
                                     st.session_state.userdata["Total Expenses"][i] -= st.session_state.userdata[selectedacc][i]                                    
                                     st.session_state.userdata["Net Income"][i] += st.session_state.userdata[selectedacc][i]
-    
+                                    st.session_state.userdata["Savings/Loss"][i] += st.session_state.userdata[selectedacc][i]
+
                             st.session_state.userdata = st.session_state.userdata[[col for col in allcols if col not in delcols]]
                             saveEntries(st.session_state.userdata, st.session_state.userid)
 
@@ -942,6 +971,7 @@ else:
 
                 existingrevs = []
                 existingexps = []
+                existingdbs = []
                 existingtaxes = []
 
                 for col in st.session_state.userdata.columns:
@@ -952,8 +982,13 @@ else:
                     elif "(Expense)" == col[-9:]:
                         existingexps.append(col)
 
+                    elif "(Deductibles)" == col[-13:]:
+                        existingdbs.append(col)
+
                     elif "(Tax)" == col[-5:]:
                         existingtaxes.append(col)
+
+                st.session_state.userdata = sortAccounts(st.session_state.userdata)
 
                 revenue = {}
                 expenses = {}
@@ -1015,11 +1050,15 @@ else:
                         if name == "":
                             unnamedaccounts += 1
                             revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
+                            dbcol = f"Unnamed Revenue Account {unnamedaccounts} (Deductibles)"
                             taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
                         else:
                             revenuecol = f"{name} (Revenue)"
+                            dbcol = f"{name} (Deductibles)"
                             taxcol = f"{name} (Tax)"
+
+                        #CONTINUE PATCHING FROM HERE
 
                         if revenuecol in revenue:
                             revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
