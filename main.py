@@ -991,8 +991,9 @@ else:
                 st.session_state.userdata = sortAccounts(st.session_state.userdata)
 
                 revenue = {}
-                expenses = {}
+                deductibles = {}
                 tax = {}
+                expenses = {}
 
                 revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
                 expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
@@ -1024,7 +1025,7 @@ else:
                     st.write("---")
                     st.header("Revenue Sources")
 
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     
                     unnamedaccounts = 0
 
@@ -1032,6 +1033,7 @@ else:
 
                         accname = ""
                         initialamt = 0.
+                        initialdb = 0.
                         initialtax = 0.
 
                         if (i < len(existingrevs)):
@@ -1058,19 +1060,23 @@ else:
                             dbcol = f"{name} (Deductibles)"
                             taxcol = f"{name} (Tax)"
 
-                        #CONTINUE PATCHING FROM HERE
-
                         if revenuecol in revenue:
                             revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
                         else:
                             revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
-                        if taxcol in tax:
-                            tax[taxcol] += revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                        if dbcol in deductibles:
+                            deductibles[dbcol] += c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdb)
                         else:
-                            tax[taxcol] = revenue[revenuecol] * c3.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                            deductibles[dbcol] = c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdb)
+
+                        if taxcol in tax:
+                            tax[taxcol] += revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
+                        else:
+                            tax[taxcol] = revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
 
                         revenue[revenuecol] = round(revenue[revenuecol], 2)
+                        deductibles[dbcol] = round(deductibles[dbcol], 2)
                         tax[taxcol] = round(tax[taxcol], 2)
 
                 if expensecount > 0:
@@ -1114,13 +1120,11 @@ else:
 
 
                 totalrevenue = sum(revenue.values())
-                totalexpenses = sum(expenses.values())
+                totaldbs = sum(deductibles.values())
                 totaltax = sum(tax.values())
-
-                c1, c2, c3 = st.columns(3)
+                totalexpenses = sum(expenses.values())
 
                 netincome = totalrevenue - totalexpenses - totaltax
-
 
                 revenuestr = f"{round(totalrevenue, 2)}"
 
@@ -1129,15 +1133,15 @@ else:
 
                 if (totalrevenue == 0):
                     revenuestr = f"(0.00)"
+                
+                dbstr = f"{round(totaldbs, 2)}"
 
-                expensestr = f"{round(totalexpenses, 2)}"
+                # CHANGE TO DBS
+                if ("." in dbstr and len(dbstr.split(".")[1]) == 1):
+                    dbstr += "0"
 
-                if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
-                    expensestr += "0"
-
-                if (totalexpenses == 0):
-                    expensestr = f"0.00"        
-
+                if (totaldbs == 0):
+                    dbstr = f"(0.00)"
 
                 taxstr = f"{round(totaltax, 2)}"
 
@@ -1147,6 +1151,13 @@ else:
                 if (totaltax == 0):
                     taxstr = f"0.00"        
 
+                expensestr = f"{round(totalexpenses, 2)}"
+
+                if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
+                    expensestr += "0"
+
+                if (totalexpenses == 0):
+                    expensestr = f"0.00"
 
                 netincomestr = f"{np.abs(round(netincome, 2))}"
 
@@ -1159,6 +1170,16 @@ else:
                 if (netincome == 0):
                     netincomestr = f"(0.00)"        
 
+                savingsstr = f"{np.abs(round(savings, 2))}"
+
+                if ("." in savingsstr and len(savingsstr.split(".")[1]) == 1):
+                    savingsstr += "0"
+
+                if netincome < 0:
+                    savingsstr = f"({savingsstr})"
+
+                if (netincome == 0):
+                    savingsstr = f"(0.00)"        
 
                 totalvals = {
                 
