@@ -442,7 +442,7 @@ else:
                     
                     unnamedaccounts += 1
                     revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
-                    dbcol = f"Unnamed Deductible Account {unnamedaccounts} (Deductibles)"
+                    dbcol = f"Unnamed Revenue Account {unnamedaccounts} (Deductibles)"
                     taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
 
                 else:
@@ -582,7 +582,7 @@ else:
             "Total Tax": [totaltax],
             "Total Expenses": [totalexpenses],
             "Net Income": [netincome],
-            "Savings/Loss": [f"$ {savings}"]
+            "Savings/Loss": [savings]
         
         }
 
@@ -677,7 +677,6 @@ else:
                     print(f"\nCould not add User {st.session_state.userid}.")
 
             try:
-
             
                 data = cleanData(data)
                 newdf = toDF(data)
@@ -967,6 +966,7 @@ else:
 
                 st.write("---")
 
+            # FIX SAVING ISSUE
             else:
 
                 existingrevs = []
@@ -1039,10 +1039,13 @@ else:
                         if (i < len(existingrevs)):
                             
                             accname = existingrevs[i][:-10]
-                            initialamt = st.session_state.userdata[existingrevs[i]][selectedindex]
+                            initialamt = float(st.session_state.userdata[existingrevs[i]][selectedindex])
                             
+                            if st.session_state.userdata[existingdbs[i]][selectedindex] != 0 and i < len(existingdbs):
+                                initialdbs = float(st.session_state.userdata[existingdbs[i]][selectedindex])
+
                             if st.session_state.userdata[existingrevs[i]][selectedindex] != 0 and i < len(existingtaxes):
-                                initialtax = st.session_state.userdata[existingtaxes[i]][selectedindex] / st.session_state.userdata[existingrevs[i]][selectedindex] * 100
+                                initialtax = float(st.session_state.userdata[existingtaxes[i]][selectedindex] / st.session_state.userdata[existingrevs[i]][selectedindex] * 100)
 
                         if accname[:23] == "Unnamed Revenue Account":
                             unnamedaccounts += 1
@@ -1124,7 +1127,8 @@ else:
                 totaltax = sum(tax.values())
                 totalexpenses = sum(expenses.values())
 
-                netincome = totalrevenue - totalexpenses - totaltax
+                netincome = totalrevenue - totaldbs - totaltax
+                savings = netincome - totalexpenses
 
                 revenuestr = f"{round(totalrevenue, 2)}"
 
@@ -1136,12 +1140,11 @@ else:
                 
                 dbstr = f"{round(totaldbs, 2)}"
 
-                # CHANGE TO DBS
                 if ("." in dbstr and len(dbstr.split(".")[1]) == 1):
                     dbstr += "0"
 
                 if (totaldbs == 0):
-                    dbstr = f"(0.00)"
+                    dbstr = f"0.00"
 
                 taxstr = f"{round(totaltax, 2)}"
 
@@ -1187,9 +1190,11 @@ else:
                     "Month": [month],
                     "Year": [str(year)],
                     "Total Revenue": [totalrevenue],
-                    "Total Expenses": [totalexpenses],
+                    "Total Deductibles": [totaldbs],
                     "Total Tax": [totaltax],
-                    "Net Income": [netincome]
+                    "Total Expenses": [totalexpenses],
+                    "Net Income": [netincome],
+                    "Savings/Loss": [savings]
                 
                 }
 
@@ -1199,45 +1204,61 @@ else:
                     "Month": [month],
                     "Year": [str(year)],
                     "Total Revenue": [f"$ {revenuestr}"],
-                    "Total Expenses": [f"$ ({expensestr})"],
+                    "Total Deductibles": [f"$ ({dbstr})"],
                     "Total Tax": [f"$ ({taxstr})"],
-                    "Net Income": [f"$ {netincomestr}"]
+                    "Total Expenses": [f"$ ({expensestr})"],
+                    "Net Income": [f"$ {netincomestr}"],
+                    "Savings/Loss": [f"$ {savingsstr}"]
                 
                 }
 
-                for revenueacc, taxacc in zip(revenue.keys(), tax.keys()):
+                for i in range(len(revenue)):
+
+                    revenueacc = list(revenue.keys())[i]
+                    dbacc = list(deductibles.keys())[i]
+                    taxacc = list(tax.keys())[i]
 
                     totalvals[revenueacc] = [revenue[revenueacc]]
+                    totalvals[dbacc] = [deductibles[dbacc]]
                     totalvals[taxacc] = [tax[taxacc]]
 
                     revenuestr = f"{round(revenue[revenueacc], 2)}"
 
-                    if ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
-                        revenuestr += "0"
-
                     if (totalrevenue == 0):
                         revenuestr = f"(0.00)"
 
-                    taxstr = f"{round(tax[taxacc], 2)}"
+                    elif ("." in revenuestr and len(revenuestr.split(".")[1]) == 1):
+                        revenuestr += "0"
 
-                    if ("." in taxstr and len(taxstr.split(".")[1]) == 1):
-                        taxstr += "0"
+                    dbstr = f"{round(deductibles[dbacc], 2)}"
+
+                    if (deductibles == 0):
+                        dbstr = f"0.00"
+
+                    elif ("." in dbstr and len(dbstr.split(".")[1]) == 1):
+                        dbstr += "0"
+
+                    taxstr = f"{round(tax[taxacc], 2)}"
 
                     if (tax[taxacc] == 0):
                         taxstr = f"0.00"
+
+                    elif ("." in taxstr and len(taxstr.split(".")[1]) == 1):
+                        taxstr += "0"
                     
                     totalvalsstr[revenueacc] = [f"$ {revenuestr}"]
+                    totalvalsstr[dbacc] = [f"$ ({dbstr})"]
                     totalvalsstr[taxacc] = [f"$ ({taxstr})"]
 
                 for acc in expenses:
 
                     expensestr = f"{round(expenses[acc], 2)}"
 
-                    if ("." in expensestr and len(expensestr.split(".")[1]) == 1):
-                        expensestr += "0"
-
                     if (expenses[acc] == 0):
                         expensestr = f"0.00"
+
+                    elif ("." in expensestr and len(expensestr.split(".")[1]) == 1):
+                        expensestr += "0"
 
                     totalvals[acc] = [expenses[acc]]
                     totalvalsstr[acc] = [f"$ ({expensestr})"]
@@ -1251,14 +1272,45 @@ else:
                     
                     if isNum(val) and col not in defaultcols[:3]:
 
-                        if col[-9:] in ["(Expense)", "(Tax)"] or col in ["Total Expenses", "Total Tax"]:
-                            val = f"$ ({str(val)})"                        
+                        if col[-9:] == "(Expense)" or col[-13:] == "(Deductibles)" or col[-5:] == "(Tax)" or col in ["Total Expenses", "Total Deductibles", "Total Tax"]:
+
+                            if val == 0:
+                                val = "0.00"
+                            else:
+                                val = f"{val}"
+
+                            if "." not in val:
+                                val += ".00"
+                            elif "." in val and len(val.split(".")[1]) == 1:
+                                val += "0"
+
+                            val = f"$ ({val})"
 
                         elif val <= 0:
+                            
                             val = abs(val)
-                            val = f"$ ({str(val)})"                        
 
+                            if val == 0:
+                                val = "0.00"
+                            else:
+                                val = f"{val}"
+
+                            if "." not in val:
+                                val += ".00"
+                            elif "." in val and len(val.split(".")[1]) == 1:
+                                val += "0"
+
+                            val = f"$ ({val})"
+                                            
                         else:
+
+                            val = f"{val}"
+
+                            if "." not in val:
+                                val += ".00"
+                            elif "." in val and len(val.split(".")[1]) == 1:
+                                val += "0"
+
                             val = f"$ {val}"
 
                     prevvals[col] = [val]
@@ -1269,7 +1321,7 @@ else:
                 st.header("After:")
                 st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
-                if sidebar.button("Save Entry"):
+                if sidebar.button("**:green[Save] Entry**"):
                         
                     try:
                     
@@ -1284,13 +1336,22 @@ else:
 
                         for acc in totalvals:
                                 
-                            if acc not in data:
-                                if len(data["Month No."]) > 1:
-                                    data[acc] = [0 for i in range(len(data["Month No."])-1)]
-                                else:
-                                    data[acc] = []
-                        
-                            data[acc][selectedindex] = totalvals[acc][0]
+                            if len(data["Month No."]) > 0:
+
+                                if acc not in data:
+                                    data[acc] = [0 for i in range(len(data["Month No."]))]
+                                elif len(data[acc]) < len(data["Month No."]):
+                                    while len(data[acc]) < len(data["Month No."]):
+                                        data[acc].append(0)
+
+                            else:
+                                data[acc] = []
+                            
+
+                                st.write(data)
+                                st.write(selectedindex)
+                                data[acc][selectedindex] = totalvals[acc][0]
+
 
                         data = cleanData(data)
                         newdf = toDF(data)
