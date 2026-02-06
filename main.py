@@ -1,4 +1,4 @@
-# ADD DEDUCTIBLES COLUMN PATCH TO: Edit Your Entries, Analyze Your Data, Plan Your Budget
+# ADD DEDUCTIBLES COLUMN PATCH TO: Plan Your Budget
 import streamlit as st
 
 # Webpage Settings
@@ -292,9 +292,13 @@ if page == "Home":
 
                 for val in df[col]:
 
-                    if col == "Month No." and not isInt(val):
+                    if str(val) in [None, "", "nan"]:
                         validdata = False
-                        invalidmsg += "- There is a `Month No.` value that is not an integer (greater than 0).\n"
+                        invalidmsg += f"- There is a `{col}` value that is empty.\n"
+
+                    elif col == "Month No." and str(val) not in [None, "", "nan"] and not isInt(val):
+                        validdata = False
+                        invalidmsg += f"- There is a `Month No.` value that is not a positive integer: {val}.\n"
 
                     if col not in defaultcols[1:3] and not isNum(val):
                         validdata = False
@@ -966,7 +970,6 @@ else:
 
                 st.write("---")
 
-            # FIX SAVING ISSUE
             else:
 
                 existingrevs = []
@@ -1336,25 +1339,19 @@ else:
 
                         for acc in totalvals:
                                 
-                            if len(data["Month No."]) > 0:
+                            if acc not in data:
+                                data[acc] = [0 for i in range(len(data["Month No."]))]
 
-                                if acc not in data:
-                                    data[acc] = [0 for i in range(len(data["Month No."]))]
-                                elif len(data[acc]) < len(data["Month No."]):
-                                    while len(data[acc]) < len(data["Month No."]):
-                                        data[acc].append(0)
-
-                            else:
-                                data[acc] = []
+                            elif len(data[acc]) < len(data["Month No."]):
+                                while len(data[acc]) < len(data["Month No."]):
+                                    data[acc].append(0)
                             
-
-                                st.write(data)
-                                st.write(selectedindex)
-                                data[acc][selectedindex] = totalvals[acc][0]
+                            data[acc][selectedindex] = totalvals[acc][0]
 
 
                         data = cleanData(data)
                         newdf = toDF(data)
+
                         saveEntries(newdf, st.session_state.userid)
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
@@ -1521,6 +1518,7 @@ else:
                         sn.regplot(x=x, y=ycol, label=selectedcol)
 
                     elif gtype == "Bar Plot":
+                        ax.set_xticks(np.arange(0, np.max(x), 1))
                         sn.barplot(x=x, y=ycol, label=selectedcol)
 
                 plt.legend()
@@ -1653,7 +1651,7 @@ else:
             monthnos = list(st.session_state.userdata["Month No."])
             monthno = sidebar.number_input("**Month Number:**", step=1, min_value=max(monthnos)+1)
 
-            if st.session_state.uploadedbudgetfile:
+            if st.session_state.uploadedbudgetfile or len(st.session_state.userdata) == 1:
                 suggestvalues = False
             else:
                 suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
