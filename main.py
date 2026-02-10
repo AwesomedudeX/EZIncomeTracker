@@ -32,7 +32,7 @@ from sklearn.model_selection import train_test_split as tts
 
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
-# General data functions
+# Function to check if a string can be converted to a float or integer
 def isNum(num: str):
     
     try:
@@ -48,6 +48,7 @@ def isNum(num: str):
         
     return True
 
+# Function to check if a string can be converted to an integer
 def isInt(num: str):
 
     try:
@@ -57,12 +58,13 @@ def isInt(num: str):
     except:
         return False
 
+# Function to make it easier to convert a dictionary to a Pandas DataFrame
 def toDF(data: dict):
     return pd.DataFrame().from_dict(data)
 
-# Program-specific functions
+# Function to add an entry to the existing data; returns the updated data with new entries
 @st.cache_data
-def addToDict(userdata: pd.DataFrame, totalvals: dict):
+def addEntry(userdata: pd.DataFrame, totalvals: dict):
     
     data = {}
 
@@ -88,39 +90,36 @@ def addToDict(userdata: pd.DataFrame, totalvals: dict):
 
     return data
 
-def cleanData(data: dict):
-    
+# Removes all columns that are not related to the income tracker
+@st.cache_data
+def cleanData(data):
+
     try:
+            
+        if type(data) == dict:
 
-        for col in data:
-            if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
-                del data[col]
+            for col in data:
+                if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
+                    del data[col]
 
-        print(f"User {st.session_state.userid}'s data was cleaned successfully.")
+            print(f"User {st.session_state.userid}'s data was cleaned successfully.")
+        
+        else:
+
+            for col in data.columns:
+                if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
+                    data.drop(col, axis='columns', inplace=True)
+
+            print(f"User {st.session_state.userid}'s data was cleaned successfully.")
 
     except:
         print(f"ERROR: Could not clean User {st.session_state.userid}'s data.")
 
     return data
-
-def cleanDF(df: pd.DataFrame):
     
-    try:
-
-        for col in df.columns:
-            if col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)" and col not in defaultcols:
-                df.drop(col, axis='columns', inplace=True)
-
-        print(f"User {st.session_state.userid}'s data was cleaned successfully.")
-
-    except:
-        print(f"ERROR: Could not clean User {st.session_state.userid}'s data.")
-
-    return df
-
 def saveEntries(df, id):
 
-    df = cleanDF(df)
+    df = cleanData(df)
 
     try:
 
@@ -132,20 +131,44 @@ def saveEntries(df, id):
         print(f"\nERROR: Could not save User {id}'s data.")
 
 @st.cache_data
-def sortAccounts(df: pd.DataFrame):
+def sortAccounts(data, returnDF: bool = True):
 
     newdata = {}
 
-    for col in df.columns:
-        if col in defaultcols or col[-9:] == "(Revenue)" or col[-13:] == "(Deductibles)" or col[-5:] == "(Tax)":
-            newdata[col] = df[col]
+    try:
 
-    for col in df.columns:
-        if col[-9:] == "(Expense)":
-            newdata[col] = df[col]
+        if type(data) == dict:
+            cols = list(data.keys())
+        else:
+            cols = list(data.columns)
+
+        for col in cols:
+            
+            if col in defaultcols or col[-9:] == "(Revenue)":
+                
+                newdata[col] = data[col]
+            
+                if col[-9:]+"(Deductibles)" in cols:
+                    newdata[col[-9:]+"(Deductibles)"] = data[col[-9:]+"(Deductibles)"]
+                else:
+                    newdata[col[-9:]+"(Deductibles)"] = [0 for i in range(len(data[col]))]
+
+                if col[-9:]+"(Tax)" in cols:
+                    newdata[col[-9:]+"(Tax)"] = data[col[-9:]+"(Tax)"]
+                else:
+                    newdata[col[-9:]+"(Tax)"] = [0 for i in range(len(data[col]))]
+
+        for col in cols:
+            if col[-9:] == "(Expense)":
+                newdata[col] = data[col]
+        
+        if returnDF:
+            newdata = toDF(newdata)
+
+    except:
+        print(f"ERROR: Could not sort User {st.session_state.userid}'s data.")
     
-    newdf = toDF(newdata)
-    return cleanDF(newdf)
+    return cleanData(newdata)
 
 def colSelector(defaultval: bool = True):
     
@@ -264,7 +287,7 @@ if len(st.session_state.userdata) > 0:
     if type(st.session_state.userdata) == dict:
         st.session_state.userdata = toDF(st.session_state.userdata)
 
-    st.session_state.userdata = cleanDF(st.session_state.userdata)
+    st.session_state.userdata = cleanData(st.session_state.userdata)
     download = sidebar.download_button("**Download Data**", st.session_state.userdata.to_csv(index=False), file_name="data.csv")
 
 if page == "Home":
@@ -305,8 +328,7 @@ if page == "Home":
                         invalidmsg += "- There are values in your data that are not related to the date of the entry, and are not numerical values.\n"
 
                     if col not in defaultcols and col[-9:] not in ["(Revenue)", "(Expense)"] and col[-5:] != "(Tax)" and col[-13:] != "(Deductibles)":
-                        validdata = False
-                        invalidmsg += f"- There is an invalid column in your data (**{col}**).\n"
+                        df.drop(col, axis='columns')
 
                     if not validdata:
                         break
@@ -335,7 +357,7 @@ if page == "Home":
                     except:
                         print(f"\nCould not add User {st.session_state.userid}.")
 
-                df = cleanDF(df)
+                df = cleanData(df)
                 st.session_state.userdata = df
                 saveEntries(st.session_state.userdata, st.session_state.userid)
 
@@ -661,7 +683,7 @@ else:
         st.header("Entry Preview")
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
-        data = addToDict(st.session_state.userdata, totalvals)
+        data = addEntry(st.session_state.userdata, totalvals)
 
         if sidebar.button("**:green[Add] an Entry**"):
                 
@@ -692,7 +714,7 @@ else:
                 print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
             st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-            st.session_state.userdata = cleanDF(st.session_state.userdata)
+            st.session_state.userdata = cleanData(st.session_state.userdata)
 
             sidebar.success("Entry created successfully.")
 
@@ -708,7 +730,7 @@ else:
             with showColsExpander:
                 showCols = colSelector()
 
-            st.session_state.userdata = cleanDF(st.session_state.userdata)
+            st.session_state.userdata = cleanData(st.session_state.userdata)
 
             interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
 
@@ -822,7 +844,7 @@ else:
                         saveEntries(toDF(data), st.session_state.userid)
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                        st.session_state.userdata = cleanDF(st.session_state.userdata)
+                        st.session_state.userdata = cleanData(st.session_state.userdata)
                     
                         lendata = len(st.session_state.userdata)
 
@@ -856,7 +878,7 @@ else:
 
                     saveEntries(st.session_state.userdata, st.session_state.userid)
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                    st.session_state.userdata = cleanDF(st.session_state.userdata)
+                    st.session_state.userdata = cleanData(st.session_state.userdata)
 
     elif page == "Edit Your Entries":
 
@@ -1355,7 +1377,7 @@ else:
                         saveEntries(newdf, st.session_state.userid)
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                        st.session_state.userdata = cleanDF(st.session_state.userdata)
+                        st.session_state.userdata = cleanData(st.session_state.userdata)
 
                         st.success(f"\nSaved the entry successfully.")
 
@@ -1585,7 +1607,7 @@ else:
                             print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
                         st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
-                        st.session_state.userdata = cleanDF(st.session_state.userdata)
+                        st.session_state.userdata = cleanData(st.session_state.userdata)
 
                         sidebar.success("Entry created successfully.")
 
@@ -1621,21 +1643,20 @@ else:
 
                                 st.session_state.budgetdata[col] = list(budgetdf[col])
 
-                                if col in "Amount ($)":
+                                if col == "Amount ($)":
 
                                     for val in st.session_state.budgetdata[col]:
                                         
                                         if not isNum(val):
                                             validdata = False
                                             break
-
-                                
+                                                            
                             if validdata:
                                 st.session_state.uploadedbudgetfile = True
                                 budgetfileuploadexp.success("Your budget file was uploaded successfully!")
                             
                             else:
-                                budgetfileuploadexp.error("Please upload a valid budget file - all amount values must be numerical.")
+                                budgetfileuploadexp.error("Please upload a valid budget file - all amount values must be numerical, and they must have proper account names.")
 
                         else:
                             budgetfileuploadexp.error("Please upload a valid budget file - the file should only have the columns \"Account\", \"Subaccount\" and \"Amount ($)\".")
@@ -1657,6 +1678,7 @@ else:
                 suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
 
             revaccounts = []
+            dbacconts = []
             taxaccounts = []
             expaccounts = []
 
@@ -1664,6 +1686,9 @@ else:
 
                 if "(Revenue)" == col[-9:]:
                     revaccounts.append(col)
+
+                elif "(Deductibles)" == col[-13:]:
+                    dbacconts.append(col)
 
                 elif "(Tax)" == col[-5:]:
                     taxaccounts.append(col)
