@@ -19,7 +19,6 @@ months = ["January", "February", "March", "April", "May", "June", "July", "Augus
 
 # Importing libraries/modules
 import os
-import time
 from datetime import datetime as dt
 
 import numpy as np
@@ -144,19 +143,22 @@ def sortAccounts(data, returnDF: bool = True):
 
         for col in cols:
             
-            if col in defaultcols or col[-9:] == "(Revenue)":
+            if col in defaultcols:
+                newdata[col] = data[col]
+
+            elif col[-9:] == "(Revenue)":
                 
                 newdata[col] = data[col]
             
                 if col[-9:]+"(Deductibles)" in cols:
-                    newdata[col[-9:]+"(Deductibles)"] = data[col[-9:]+"(Deductibles)"]
+                    newdata[col[:-9]+"(Deductibles)"] = data[col[:-9]+"(Deductibles)"]
                 else:
-                    newdata[col[-9:]+"(Deductibles)"] = [0 for i in range(len(data[col]))]
+                    newdata[col[:-9]+"(Deductibles)"] = [0 for i in range(len(data[col]))]
 
                 if col[-9:]+"(Tax)" in cols:
-                    newdata[col[-9:]+"(Tax)"] = data[col[-9:]+"(Tax)"]
+                    newdata[col[:-9]+"(Tax)"] = data[col[:-9]+"(Tax)"]
                 else:
-                    newdata[col[-9:]+"(Tax)"] = [0 for i in range(len(data[col]))]
+                    newdata[col[:-9]+"(Tax)"] = [0 for i in range(len(data[col]))]
 
         for col in cols:
             if col[-9:] == "(Expense)":
@@ -1616,7 +1618,9 @@ else:
             st.subheader("Please enter more than one entry to analyze your data.")
 
     elif page == "Plan Your Budget":
-        
+
+        # PATCH EXISTING ACCOUNTS AND DATA SUGGESTIONS
+
         st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is highly recommended to include **all** fixed-value accounts (accounts with values remain unchanged between months) - as well as any variable accounts (accounts with changing values) - in your plan for the most **accurate** budget planning.")
         st.write(":grey[**Note: You may only use accounts that are present in your income data.**]")
 
@@ -1678,8 +1682,7 @@ else:
                 suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
 
             revaccounts = []
-            dbacconts = []
-            taxaccounts = []
+            dbaccounts = {}
             expaccounts = []
 
             for col in st.session_state.userdata.columns:
@@ -1688,10 +1691,7 @@ else:
                     revaccounts.append(col)
 
                 elif "(Deductibles)" == col[-13:]:
-                    dbacconts.append(col)
-
-                elif "(Tax)" == col[-5:]:
-                    taxaccounts.append(col)
+                    dbaccounts[col] = {}
 
                 elif "(Expense)" == col[-9:]:
                     expaccounts.append(col)
@@ -1699,7 +1699,7 @@ else:
             accselectionex = sidebar.expander("**Selected Accounts**")
             selectedrevaccs = []
             selectedexpaccs = []
-
+            
             if len(revaccounts) > 0:
     
                 accselectionex.subheader("Revenue/Tax Accounts")
@@ -1707,7 +1707,6 @@ else:
                 for revacc in revaccounts:
 
                     if accselectionex.checkbox(revacc[:-10], True):
-
                         selectedrevaccs.append(revacc)
 
             if len(expaccounts) > 0:
@@ -1720,6 +1719,7 @@ else:
                         selectedexpaccs.append(expacc)
 
             subaccnumex = sidebar.expander("**Number of Subaccounts**")
+            dbselectionex = sidebar.expander("**Deductible Accounts Names**")
 
             budgetdata = {}
             budgetdata["Account"] = []
@@ -1732,10 +1732,10 @@ else:
             if len(selectedrevaccs) > 0:
 
                 st.write("---")
-                st.header("Revenue/Tax Accounts")
+                st.header("Revenue Accounts")
                 st.write("---")
 
-                subaccnumex.header("Revenue/Tax Accounts")
+                subaccnumex.header("Revenue Accounts")
 
                 for revaccname in revaccounts:
 
@@ -1743,11 +1743,14 @@ else:
                     existingsubamts = []
                     existingsubtax = []
                     subaccindices = []
+                    existingdbs = {}
+
                     taxaccname = revaccname[:-9]+"(Tax)"
                     
                     if revaccname in selectedrevaccs:
 
                         initialsubaccnum = 1
+                        initialdbnum = 0
 
                         st.subheader(revaccname[:-10])
 
@@ -1761,18 +1764,34 @@ else:
                                     
                                     initialsubaccnum += 1
                                     subaccindices.append(i)
-                                    existingsubaccs.append(revaccname[:-10])
+                                    existingsubaccs.append(st.session_state.budgetdata["Subaccount"][i][:-10])
                                     existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
 
-                                    if (i+1 < len(st.session_state.budgetdata["Account"]) and st.session_state.budgetdata["Subaccount"][i+1][-5:] == "(Tax)") and st.session_state.budgetdata["Amount ($)"][i] != 0:
-                                        existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+1] / st.session_state.budgetdata["Amount ($)"][i] * 100)
+                                    nextacc = 0
 
-                                    else:
-                                        existingsubtax.append(0)
+                                    while (i+nextacc+1 < len(st.session_state.budgetdata["Account"])):
 
+                                        nextacc += 1
+                                           
+                                        if st.session_state.budgetdata["Subaccount"][i+nextacc][-5:] == "(Tax)":
+                                            
+                                            if st.session_state.budgetdata["Amount ($)"][i] != 0:
+                                                existingsubtax.append(st.session_state.budgetdata["Amount ($)"][i+nextacc] / st.session_state.budgetdata["Amount ($)"][i] * 100)
+
+                                            else:
+                                                existingsubtax.append(0)
+
+                                        elif st.session_state.budgetdata["Subaccount"][i+nextacc][-12:] == "(Deductible)":
+                                            existingdbs[st.session_state.budgetdata["Subaccount"][i+nextacc][:-13]] = st.session_state.budgetdata["Amount ($)"][i+nextacc]
+                                            initialdbnum += 1
+
+                                        else:
+                                            break
 
                         subaccnum = subaccnumex.number_input("**"+revaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
-
+                        dbaccnum = accselectionex.number_input(f"**Number of Deductible Accounts - {revaccname[:-10]}**", min_value=len(existingdbs.keys()), max_value=20, step=1)
+                        st.write(existingsubaccs)
+                        
                         for i in range(subaccnum):
     
                             c1, c2, c3 = st.columns(3)
@@ -1783,10 +1802,12 @@ else:
                             initialtax = 0.
 
                             if i < len(existingsubaccs):
+
                                 initialsubaccname = existingsubaccs[i]
                                 initialamt = existingsubamts[i]
                                 initialtax = existingsubtax[i]
 
+                            # PATCH
                             elif suggestvalues and revaccname in recommendedvals:
                                 
                                 initialsubaccname = "Total"
@@ -1803,10 +1824,10 @@ else:
                                 if not isNum(initialtax):
                                     initialtax = 0.
 
+
                             subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
                             subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**", min_value=0., value=initialtax)
-
 
                             budgetdata["Account"].append(revaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Revenue)")
@@ -1815,7 +1836,52 @@ else:
                             budgetdata["Account"].append(revaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Tax)")
                             budgetdata["Amount ($)"].append(subaccamt*subacctax/100)
-                    
+
+                        if dbaccnum > 0:
+
+                            dbselectionex.header(revaccname[:-10]+":")
+                            st.subheader("Deductibles:")
+
+                            if dbaccnum > 4:
+                                cols = st.columns(4)
+                            else:
+                                cols = st.columns(dbaccnum)
+
+                            unnameddbaccs = 0
+
+                            for i in range(dbaccnum):
+
+                                initialsubaccname = f"Unnamed Subaccount {i+1}"
+
+                                initialdbamt = 0.
+
+
+                                if i < len(existingdbs):
+                                    initialdbname = list(existingdbs.keys())[i]
+                                    initialdbamt = existingdbs[initialdbname]
+
+                                dbaccname = dbselectionex.text_input(f"**Deductible Account {i+1} - {revaccname[:-10]}:**", value=initialdbname)
+
+                                if dbaccname != "":
+                                    dbamt = cols[i%4].number_input(f"**{i+1}. {dbaccname} - {revaccname[:-10]}**", min_value=0., value=initialdbamt)
+
+                                else:
+                                    dbaccname = f"Deductible Account {i+1}"
+                                    dbamt = cols[i%4].number_input(f"**Deductible Account {i+1} - {revaccname[:-10]}**", min_value=0., value=initialdbamt)
+                                    unnameddbaccs += 1
+
+                                budgetdata["Account"].append(revaccname[:-10])
+                                budgetdata["Subaccount"].append(dbaccname+" (Deductible)")
+                                budgetdata["Amount ($)"].append(dbamt)
+
+                            revaccswithdbs = [acc for acc in revaccounts if dbaccnum > 0]
+
+                            if revaccname[:-10] != revaccswithdbs[-1]:
+                                dbselectionex.write("---")
+
+                    if revaccname != selectedrevaccs[-1]:
+                        st.subheader("")
+                        
 
             if len(selectedexpaccs) > 0:
 
@@ -1883,6 +1949,8 @@ else:
                             budgetdata["Subaccount"].append(subaccname+" (Expense)")
                             budgetdata["Amount ($)"].append(subaccamt)
                     
+                if expaccname != selectedexpaccs[-1]:
+                    st.subheader("")
             
             budgetdf = toDF(budgetdata)
  
@@ -1893,9 +1961,3 @@ else:
 
         else:
             st.subheader("Please add at least one entry (with at least one account) to budget with your accounts.")
-
-# REMOVE AFTER RELEASE
-if sidebar.button("**Push to :blue[GitHub]**"):
-    os.system("git add .")
-    os.system("git commit -m \"Remote Update\"")
-    os.system("git push origin main")        

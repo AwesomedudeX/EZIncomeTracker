@@ -1,10 +1,9 @@
 Account,Subaccount,Amount ($)
-Salary,Total (Revenue),10000.0
-Salary,Total (Tax),1000.0
-Company Dividends,Total (Revenue),200.0
-Company Dividends,Total (Tax),30.0
-Day Trading Income,Total (Revenue),740.0
-Day Trading Income,Total (Tax),185.0
-Rent,Total (Expense),5000.0
-Deductibles,Total (Expense),1000.0
-Groceries,Total (Expense),468.0
+Unnamed Revenue Account 1,Total (Revenue),1555.0
+Unnamed Revenue Account 1,Total (Tax),155.5
+Unnamed Revenue Account 1,CPP (Deductible),300.0
+Unnamed Revenue Account 1,RRSP (Deductible),100.0
+Unnamed Revenue Account 2,Total (Revenue),25.0
+Unnamed Revenue Account 2,Total (Tax),2.5
+Unnamed Revenue Account 2,EI (Deductible),5.0
+Unnamed Expense Account 1,Total (Expense),59.0
