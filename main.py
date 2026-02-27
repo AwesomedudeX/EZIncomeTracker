@@ -1,7 +1,12 @@
 # ADD COMMENTS
 
-# Note: All cached data stores outputs based on the inputs of a function; if the function is called multiple times
-# with the same conditions/parameters, it will return the cached output instead of rerunning the function.
+# General Notes:
+# 
+# - All cached data stores outputs based on the inputs of a function; if the function is called multiple times
+#   with the same conditions/parameters, it will return the cached output instead of rerunning the function.
+# 
+# - All st.columns objects are used to separate page elements into columns; new ones are placed below previously created ones
+# a
 
 # Importing Streamlit; to be used for the web app
 import streamlit as st
@@ -18,7 +23,7 @@ requiredlibraries = [
     "sklearn"
 ]
 defaultcols = ["Month No.", "Month", "Year", "Total Revenue", "Total Tax", "Total Deductibles", "Total Expenses", "Net Income", "Savings/Loss"]
-pages = ["Home", "Create an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
+pages = ["Home", "Add an Entry", "Your Income Data", "Edit Your Entries", "Analyze Your Data", "Plan Your Budget"]
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 
@@ -101,6 +106,8 @@ def addEntry(userdata: pd.DataFrame, totalvals: dict):
 @st.cache_data
 def cleanData(data):
 
+    # Changes treatment based on whether the data is a dictionary or a DataFrame, but othwerwise removes all accounts not related to income data;
+    # catches any errors that occur and prints a message out to the console
     try:
             
         if type(data) == dict:
@@ -127,6 +134,9 @@ def cleanData(data):
 # Function to convert a user's data to a CSV, and save it in their corresponding data file
 def saveEntries(df, id):
 
+    # Cleans the user's data, and attempts to convert it to a CSV and save it to the user's assigned CSV file; prints a message
+    # out to the console based on whether it was successful or not.
+    
     df = cleanData(df)
 
     try:
@@ -138,8 +148,8 @@ def saveEntries(df, id):
     except:
         print(f"\nERROR: Could not save User {id}'s data.")
 
-# Function to sort the accounts in the data set, alternating between revenue, deductibles & tax for each revenue account, followed by all expense accounts 
-# Converts the result to a DataFrame at the end, unless returnDF is set to False
+# Function to sort the accounts in the data set, alternating between revenue, deductibles & tax for each revenue account,
+# followed by all expense accounts; converts the result to a DataFrame at the end, unless returnDF is set to False
 @st.cache_data
 def sortAccounts(data, returnDF: bool = True) -> dict:
 
@@ -433,8 +443,7 @@ else:
     # Periodically sorts the data set
     st.session_state.userdata = sortAccounts(st.session_state.userdata)    
 
-    # ADD COMMENTS
-    if page == "Create an Entry":
+    if page == "Add an Entry":
 
         st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
 
@@ -491,7 +500,7 @@ else:
             st.subheader("**Use the sidebar on the left to add accounts.**")
 
         # Revenue accounts; takes inputs from the user and converts tax values from percentages to dollar amounts using the corresponding revenue amount,
-        # storing these values in their corresponding dictionaries
+        # storing these values in their corresponding dictionaries; keeps track of unnamed accounts, renaming accounts whose names are left blank
         if revenuecount > 0:
             
             st.write("---")
@@ -499,31 +508,36 @@ else:
             
             unnamedaccounts = 0
 
+            # Loops for the amount of revenue accounts to be created
             for i in range(revenuecount):
 
                 c1, c2, c3, c4 = st.columns(4)
     
                 accname = ""
 
+                # Checks if the account already exists; if it does, assigns the current name to accname
                 if (i < len(existingrevs)):
                     accname = existingrevs[i][:-10]
 
+                # Checks if the account starts with "Unnamed Revenue Account", indicating that it was likely previously left unnamed;
+                # if it was, increments unnamedaccounts by 1
                 if accname[:23] == "Unnamed Revenue Account":
                     unnamedaccounts += 1
 
                 name = c1.text_input(f"**Revenue Source {i+1}:**", value=accname)
 
+                # Renames unnamed accounts, keeping track of how many are left unnamed
                 if name == "":
-                    
                     unnamedaccounts += 1
                     revenuecol = f"Unnamed Revenue Account {unnamedaccounts} (Revenue)"
                     dbcol = f"Unnamed Revenue Account {unnamedaccounts} (Deductibles)"
                     taxcol = f"Unnamed Revenue Account {unnamedaccounts} (Tax)"
-
                 else:
                     revenuecol = f"{name} (Revenue)"
                     dbcol = f"{name} (Deductibles)"
                     taxcol = f"{name} (Tax)"
+
+                # Adds entry values to their corresponding accounts, merging duplicate accounts and calculating tax based on the account's revenue
 
                 if revenuecol in revenue:
                     revenue[revenuecol] += c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0.)
@@ -540,11 +554,13 @@ else:
                 else:
                     tax[taxcol] = revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0.) * 0.01
 
+                # Rounds all accounts to the second decimal place
+
                 revenue[revenuecol] = round(revenue[revenuecol], 2)
                 deductibles[dbcol] = round(deductibles[dbcol], 2)
                 tax[taxcol] = round(tax[taxcol], 2)
 
-        # Expense accounts; takes inputs from the user,storing them in their corresponding dictionary
+        # Expense accounts; takes inputs from the user, storing them in their corresponding dictionary
         if expensecount > 0:
             
             st.write("---")
@@ -552,20 +568,25 @@ else:
 
             unnamedaccounts = 0
 
+            # Loops for the amount of expense accounts to be created
             for i in range(expensecount):
 
                 c1, c2 = st.columns(2)
 
                 accname = ""
 
+                # Checks if the account already exists; if it does, assigns the current name to accname
                 if (i < len(existingexps)):
                     accname = existingexps[i][:-10]
                 
+                # Checks if the account starts with "Unnamed Expense Account", indicating that it was likely previously left unnamed;
+                # if it was, increments unnamedaccounts by 1
                 if accname[:23] == "Unnamed Expense Account":
                     unnamedaccounts += 1
 
                 name = c1.text_input(f"**Expense {i+1}:**", value=accname)
 
+                # Renames unnamed accounts, keeping track of how many are left unnamed
                 if name == "":
                     unnamedaccounts += 1
                     expensecol = f"Unnamed Expense Account {unnamedaccounts} (Expense)"
@@ -573,16 +594,19 @@ else:
                 else:
                     expensecol = f"{name} (Expense)"
                     
+                # Adds entry values to their corresponding accounts, merging duplicate accounts and calculating tax based on the account's revenue
                 if expensecol in expenses:
                     expenses[expensecol] += c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
 
                 else:
                     expenses[expensecol] = c2.number_input(f"**Expense Amount {i+1} ($):**", step=0.01, min_value=0.)
-
+                
+                # Rounds each expense value to 2 decimal places
                 expenses[expensecol] = round(expenses[expensecol], 2)
 
         
         # Calculates all the totals, and with them, the net income and savings/loss amounts
+
         totalrevenue = sum(revenue.values())
         totaldbs = sum(deductibles.values())
         totalexpenses = sum(expenses.values())
@@ -591,7 +615,9 @@ else:
         netincome = totalrevenue - totaldbs - totaltax
         savings = netincome - totalexpenses
 
-        # Creates string versions of all values, in a proper financial document value format
+        # Creates string versions of all of the totals, in a proper financial document value format; negative revenue values and all
+        # deductible/tax/expense values are placed within brackets as positive values, values that are 0 are reformatted to (0.00)
+        # and values that have one decimal place recieve another 0 to make the number appear as 2 decimal places 
 
         revenuestr = f"{round(totalrevenue, 2)}"
 
@@ -681,9 +707,9 @@ else:
         
         }
 
-        # CONTINUE COMMENTING FROM HERE
-
         for i in range(len(revenue)):
+
+            # Assigns the names of the accounts corresponding to each account type, and adds each value to their corresponding accounts in the totalvals dictionary  
 
             revenueacc = list(revenue.keys())[i]
             dbacc = list(deductibles.keys())[i]
@@ -692,6 +718,9 @@ else:
             totalvals[revenueacc] = [revenue[revenueacc]]
             totalvals[dbacc] = [deductibles[dbacc]]
             totalvals[taxacc] = [tax[taxacc]]
+
+            # Creates string versions of the account values, in a proper financial document value format,
+            # assigning them to their corresponding accounts in the totalvalsstr dictionary
 
             revenuestr = f"{round(revenue[revenueacc], 2)}"
 
@@ -721,6 +750,8 @@ else:
             totalvalsstr[dbacc] = [f"$ {dbstr}"]
             totalvalsstr[taxacc] = [f"$ ({taxstr})"]
 
+        # Loops through all the expense accounts, adding the value to the corresponding account in the totalvals dictionary,
+        # and creates a string version, which is added to the corresponding account in the totalvalsstr dictionary
         for acc in expenses:
 
             expensestr = f"{round(expenses[acc], 2)}"
@@ -734,16 +765,21 @@ else:
             totalvals[acc] = [expenses[acc]]
             totalvalsstr[acc] = [f"$ ({expensestr})"]
 
+        # Converts totalvalsstr to a DataFrame
         totalvalsstr = toDF(totalvalsstr)
 
+        # Displays a preview for the entry in a single-row DataFrame format
         st.write("---")
         st.header("Entry Preview")
         st.dataframe(totalvalsstr, hide_index=True, use_container_width=True)
 
+        # Creates a variable to store the user's data with the new entry
         data = addEntry(st.session_state.userdata, totalvals)
 
-        if sidebar.button("**:green[Add] an Entry**"):
+        if sidebar.button("**:green[Add] an Entry**") or st.button("**:green[Add] an Entry**", use_container_width=True):
                 
+            # If the user does not have an empty dataset, and does not have an ID in the ID list, updates the user ID list,
+            # creates a new ID and assigns it to the user, before updating the ID list file (users.py) accordingly
             if st.session_state.userid not in st.session_state.currentids and lendata > 0:
 
                 import users
@@ -759,8 +795,10 @@ else:
                 except:
                     print(f"\nCould not add User {st.session_state.userid}.")
 
+            # Cleans the data, converts it to a DataFrame, saves it to the user's CSV file and prints a message;
+            # if there is an error, catches it and prints a message to the console
             try:
-            
+                
                 data = cleanData(data)
                 newdf = toDF(data)
                 saveEntries(newdf, st.session_state.userid)
@@ -770,6 +808,7 @@ else:
             except:
                 print(f"\nERROR: Entry could not be created for User {st.session_state.userid}.")
 
+            # Reads the data from the user's assigned CSV file, and cleans it, before showing a message at the end to the user
             st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
             st.session_state.userdata = cleanData(st.session_state.userdata)
 
