@@ -1,8 +1,12 @@
-# ADD DEDUCTIBLES COLUMN PATCH TO: Data Interpolation
 # ADD COMMENTS
+
+# Note: All cached data stores outputs based on the inputs of a function; if the function is called multiple times
+# with the same conditions/parameters, it will return the cached output instead of rerunning the function.
+
+# Importing Streamlit; to be used for the web app
 import streamlit as st
 
-# Webpage Settings
+# Web App Settings
 st.set_page_config(page_title="EZ Income Tracker", layout="wide", initial_sidebar_state="expanded", page_icon="logo.png")
 
 # Initializing constant variables
@@ -19,7 +23,6 @@ months = ["January", "February", "March", "April", "May", "June", "July", "Augus
 
 
 # Importing libraries/modules
-import os
 from datetime import datetime as dt
 
 import numpy as np
@@ -30,6 +33,7 @@ import seaborn as sn
 from sklearn.linear_model import LinearRegression as lreg
 from sklearn.model_selection import train_test_split as tts
 
+# Setting DataFrames to display all columns and rows
 pd.set_option("display.max_columns", None, "display.max_rows", None)
 
 # Function to check if a string can be converted to a float or integer
@@ -62,12 +66,13 @@ def isInt(num: str):
 def toDF(data: dict):
     return pd.DataFrame().from_dict(data)
 
-# Function to add an entry to the existing data; returns the updated data with new entries
+# Function to add an entry to the existing data; returns the updated data with new entries, and caches the data for better performance
 @st.cache_data
 def addEntry(userdata: pd.DataFrame, totalvals: dict):
     
     data = {}
 
+    # Loops through all the existing data columns, adding each one to the data dictionary
     for col in userdata.columns:
 
         data[col] = []
@@ -78,8 +83,10 @@ def addEntry(userdata: pd.DataFrame, totalvals: dict):
         if col not in totalvals:
             data[col].append(0)
 
+    # Loops through the values of the new accounts and adds the new entry to each column
     for acc in totalvals:
             
+        # If a new account was created, adds a new column with zeroes before adding the new entry to ensure column length remains the same
         if acc not in data:
             if len(data["Month No."]) > 1:
                 data[acc] = [0 for i in range(len(data["Month No."])-1)]
@@ -90,7 +97,7 @@ def addEntry(userdata: pd.DataFrame, totalvals: dict):
 
     return data
 
-# Removes all columns that are not related to the income tracker
+# Function to remove all columns that are not related to the income tracker; caches the outputted data for improved performance
 @st.cache_data
 def cleanData(data):
 
@@ -117,7 +124,7 @@ def cleanData(data):
 
     return data
 
-# Function to save a user's data to their corresponding CSV file
+# Function to convert a user's data to a CSV, and save it in their corresponding data file
 def saveEntries(df, id):
 
     df = cleanData(df)
@@ -132,6 +139,7 @@ def saveEntries(df, id):
         print(f"\nERROR: Could not save User {id}'s data.")
 
 # Function to sort the accounts in the data set, alternating between revenue, deductibles & tax for each revenue account, followed by all expense accounts 
+# Converts the result to a DataFrame at the end, unless returnDF is set to False
 @st.cache_data
 def sortAccounts(data, returnDF: bool = True) -> dict:
 
@@ -192,28 +200,31 @@ def colSelector(defaultval: bool = True) -> list:
 
 # Function for extrapolating data with linear regression, used in multiple parts of the program, with cached outputs for better performance
 @st.cache_data
-def predict(data: dict, predmonths: list, startentry: int, endentry: int, returnasdf: bool = False):
+def predict(data: dict, predmonths: list, startentry: int, endentry: int, returnDF: bool = False):
 
+    # Defining variables to store the columns to be predicted (all numerical columns), and the data to be used for prediction (x & y)
     ycols = [c for c in data if c not in defaultcols[:3]]
     x = data["Month No."][startentry-1:endentry]
     y = data[ycols].iloc[startentry-1:endentry]
 
+    # Creates training and testing datasets to be used with the linear regression prediction model 
     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
     xtrain, xtest = xtrain.values.reshape(-1, 1), xtest.values.reshape(-1, 1)
+
+    # Creates a linear regression prediction model object and fits it to the training datasets
     lr = lreg().fit(xtrain, ytrain)
 
+    # Formatting the list of months to be predicted to be used in prediction, and stores the output of the prediction in a variable
     predmonthsfmt = [[m] for m in predmonths]
     pred = lr.predict(predmonthsfmt)
+    
+    # Initializing and defining a dictionary to store the predicted data, keeping the predicted months in the Month No. column, and undefined months and years in their corresponding columns
     preddict = {}
-
     preddict["Month No."] = predmonths
     preddict["Month"] = ["N/A" for i in range(len(predmonths))]
     preddict["Year"] = ["N/A" for i in range(len(predmonths))]
 
-    for title in defaultcols:
-        if title not in defaultcols[:3]:
-            preddict[title] = 0                 
-
+    # Loops through all columns to be used for prediction, adds each predicted value to a list and adds the list to its corresponding column
     for c in range(len(ycols)):
 
         predcol = []
@@ -223,11 +234,13 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
 
         preddict[ycols[c]] = predcol
 
+    # If single values are present in the predicted dataset, converts them to a list
     for col in preddict:
 
         if type(preddict[col]) != list:
             preddict[col] = [preddict[col]]
 
+    # Loops through all the columns in the predicted data, setting the totals to 0 and re-creating a total based on the predicted account values
     for i in range(len(preddict[col])):
 
         preddict["Total Revenue"][i] = 0
@@ -248,12 +261,14 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
 
         preddict["Net Income"][i] += (preddict["Total Revenue"][i] - preddict["Total Tax"][i] - preddict["Total Expenses"][i])
     
-    if returnasdf:
+    # Returns the data as a DataFrame if returnDF is True; otherwise returns the data as a dictionary 
+    if returnDF:
         return toDF(preddict)
     else:
         return preddict
 
-# Initializes/defines any variables not currently present in st.session_state; used for values that need to persist across runs, but will only be saved within the session.
+# Initializes/defines any variables not currently present in st.session_state; used for values that need to
+# persist across runs, but will only be saved within the session.
 if "userdata" not in st.session_state or "userid" not in st.session_state or "currentids" not in st.session_state or "budgetdata" not in st.session_state or "uploadedbudgetfile" not in st.session_state:
 
     st.session_state.currentids = []
@@ -280,16 +295,19 @@ if "userdata" not in st.session_state or "userid" not in st.session_state or "cu
 
     st.session_state.uploadedbudgetfile = False
 
-
+# Initializes a variable to store the sidebar object (just so that I do not need to call st.sidebar every time)
 sidebar = st.sidebar
 
-st.sidebar.title(":green[EZ] Income Tracker")
+# Displays the title and navigation menu on the sidebar
+sidebar.title(":green[EZ] Income Tracker")
 
-page = st.sidebar.radio("**Navigation:**", pages)
+page = sidebar.radio("**Navigation:**", pages)
 
 if sidebar.button("**Refresh Page**"):
     sidebar.success("Page refreshed successfully!")
-    
+
+# If the user has data entries in their dataset, converts it to a DataFrame if necessary, cleans their data and shows a button to
+# download their data on the sidebar
 if len(st.session_state.userdata) > 0:
 
     if type(st.session_state.userdata) == dict:
@@ -300,25 +318,34 @@ if len(st.session_state.userdata) > 0:
 
 if page == "Home":
 
+    # Homepage text
     st.title(":green[EZ] Income Tracker")
     st.write("Welcome to **:green[EZ] Income Tracker.** This website will help you with **all** of your income tracking needs, with **data management**, **analysis**, **visualization** and **prediction features** that make budgeting **quick**, **easy** and **secure**. Make sure to create entries **every month** for the **best** results.")
     st.write("**If you have used this website before**, upload your **`data.csv`** file from your **last session** to the box **below**. If this is your first time, head to the **`Add an Entry`** page to get started. Once you're done, make sure to **save your data** by hitting the **`Download Data`** button on the sidebar **to the left**.")
 
+    # File uploader object; creates a file uploader and stores the uploaded file
     datafile = st.file_uploader("**Upload your data file below:**", accept_multiple_files=False, type=["csv"])
 
+    # If the user uploads a file and clicks the Upload File button, runs this code
     if datafile and st.button("Upload File"):
         
+        # try-except to catch errors and display a message instead
         try:
 
+            # Assigns the uploaded data to a variable, and initializes data validation variables
             df = pd.read_csv(datafile)
             validdata = True
             invalidmsg = ""
 
+            # Checks if all default columns are present in the dataset; adds columns that are not to the invalid data message,
+            # and updates validdata with False if necessary
             for col in defaultcols:
                 if col not in df.columns:
                     invalidmsg += f"- The data is missing the **{col}** column.\n"
                     validdata = False
 
+            # Loops through each column, checking for various data validation criteria, adding text to the invalid data message and
+            # updating validdata accordingly
             for col in df:
 
                 for val in df[col]:
@@ -344,6 +371,7 @@ if page == "Home":
                 if not validdata:
                     break
 
+            # If the data is valid, assigns the user an ID (if they do not have one already), and cleans & saves their data
             if validdata:
 
                 lendata = len(st.session_state.userdata)
@@ -365,22 +393,25 @@ if page == "Home":
                     except:
                         print(f"\nCould not add User {st.session_state.userid}.")
 
+                df = sortAccounts(df)
                 df = cleanData(df)
                 st.session_state.userdata = df
                 saveEntries(st.session_state.userdata, st.session_state.userid)
-
+            
+            # Otherwise, prints a message
             else:
                 st.error("This is an invalid data file. Here's why:\n\n"+invalidmsg)
 
+        # Except statement to catch errors and print the following message
         except:
             st.error("There was an issue in uploading your file. Please try again.")
     
-    st.session_state.userdata = sortAccounts(st.session_state.userdata)    
-
 else:
 
+    # Displays the page title
     st.title(page)
     
+    # Periodically updates these general-use variables
     now = dt.now()
     currentmonth = now.strftime("%B")
     currentyear = int(now.strftime("%Y"))
@@ -393,24 +424,27 @@ else:
             monthindex = m
             break
 
-    st.session_state.userdata = sortAccounts(st.session_state.userdata)    
-
     if lendata > 0:
         currentmonthno = list(st.session_state.userdata["Month No."])[-1]+1
     
     else:
         currentmonthno = 1
 
+    # Periodically sorts the data set
+    st.session_state.userdata = sortAccounts(st.session_state.userdata)    
 
+    # ADD COMMENTS
     if page == "Create an Entry":
 
         st.write(":grey[**Note:** For the month number to update, you may need to refresh the page after adding an entry if you plan on adding multiple entries.]")
 
+        # Initializes existing account lists
         existingrevs = []
         existingdbs = []
         existingexps = []
         existingtaxes = []
 
+        # Loops through all existing accounts in the user's data, adding each account to their corresponding lists
         for col in st.session_state.userdata.columns:
 
             if "(Revenue)" == col[-9:]:
@@ -425,13 +459,17 @@ else:
             elif "(Tax)" == col[-5:]:
                 existingtaxes.append(col)
 
+        # Initializes dictionaries to store each account type
         revenue = {}
         deductibles = {}
-        expenses = {}
         tax = {}
+        expenses = {}
 
+        # Number of accounts to be used; each revenue account has a tax account and deductible account associated with it
         revenuecount = sidebar.number_input("**Number of Revenue Accounts:**", step=1, value=len(existingrevs), min_value=0)
         expensecount = sidebar.number_input("**Number of Expense Accounts:**", step=1, value=len(existingexps), min_value=0)
+
+        # Entry time information
 
         st.write("---")
         st.header("Time of Entry")
@@ -452,6 +490,8 @@ else:
             st.write("---")
             st.subheader("**Use the sidebar on the left to add accounts.**")
 
+        # Revenue accounts; takes inputs from the user and converts tax values from percentages to dollar amounts using the corresponding revenue amount,
+        # storing these values in their corresponding dictionaries
         if revenuecount > 0:
             
             st.write("---")
@@ -504,6 +544,7 @@ else:
                 deductibles[dbcol] = round(deductibles[dbcol], 2)
                 tax[taxcol] = round(tax[taxcol], 2)
 
+        # Expense accounts; takes inputs from the user,storing them in their corresponding dictionary
         if expensecount > 0:
             
             st.write("---")
@@ -540,7 +581,8 @@ else:
 
                 expenses[expensecol] = round(expenses[expensecol], 2)
 
-
+        
+        # Calculates all the totals, and with them, the net income and savings/loss amounts
         totalrevenue = sum(revenue.values())
         totaldbs = sum(deductibles.values())
         totalexpenses = sum(expenses.values())
@@ -548,6 +590,8 @@ else:
 
         netincome = totalrevenue - totaldbs - totaltax
         savings = netincome - totalexpenses
+
+        # Creates string versions of all values, in a proper financial document value format
 
         revenuestr = f"{round(totalrevenue, 2)}"
 
@@ -607,6 +651,8 @@ else:
         if (savings == 0):
             savingsstr = f"(0.00)"        
 
+        # Stores all values and string values in their corresponding dictionaries
+        
         totalvals = {
         
             "Month No.": [monthno],
@@ -634,6 +680,8 @@ else:
             "Savings/Loss": [f"$ {savingsstr}"]
         
         }
+
+        # CONTINUE COMMENTING FROM HERE
 
         for i in range(len(revenue)):
 
@@ -727,10 +775,9 @@ else:
 
             sidebar.success("Entry created successfully.")
 
+    # ADD COMMENTS
     elif page == "Your Income Data":
         
-        # PATCH DATA INTERPOLATION
-
         if lendata == 0:
             st.subheader("Please add an entry before attempting to view your entries.")            
 
@@ -891,6 +938,7 @@ else:
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                     st.session_state.userdata = cleanData(st.session_state.userdata)
 
+    # ADD COMMENTS
     elif page == "Edit Your Entries":
 
         st.write(":grey[**Note:** You will need to refresh the page or perform an action for the screen to update with your modified data.]")
@@ -1395,6 +1443,7 @@ else:
                     except:
                         st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
 
+    # ADD COMMENTS
     elif page == "Analyze Your Data":
 
         st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. Before you begin, it's **highly recommended** that you ensure there is **no missing data**, or any missing data has been **interpolated** on the **Your Income Data** page. To get started, just select what you want to do **below**:")
@@ -1466,7 +1515,7 @@ else:
                     if darkbg:
                         plt.style.use("dark_background")
                     else:
-                        plt.style.use("classic")
+                        plt.style.use("default")
 
                     gtype = st.selectbox("**Graph Type:**", gtypes)
                     numcols = st.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
@@ -1626,6 +1675,7 @@ else:
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
 
+    # ADD COMMENTS
     elif page == "Plan Your Budget":
 
         st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is highly recommended to include **all** fixed-value accounts (accounts with values remain unchanged between months) - as well as any variable accounts (accounts with changing values) - in your plan for the most **accurate** budget planning.")
