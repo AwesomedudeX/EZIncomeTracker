@@ -436,7 +436,7 @@ else:
 
     if lendata > 0:
         currentmonthno = list(st.session_state.userdata["Month No."])[-1]+1
-    
+
     else:
         currentmonthno = 1
 
@@ -817,9 +817,11 @@ else:
     # ADD COMMENTS
     elif page == "Your Income Data":
         
+        
         if lendata == 0:
-            st.subheader("Please add an entry before attempting to view your entries.")            
+            st.subheader("Please add an entry before attempting to view your entries.")
 
+        
         else:
 
             showColsExpander = sidebar.expander("**Selected Columns**")
@@ -1156,7 +1158,7 @@ else:
 
                         accname = ""
                         initialamt = 0.
-                        initialdb = 0.
+                        initialdbs = 0.
                         initialtax = 0.
 
                         if (i < len(existingrevs)):
@@ -1192,9 +1194,9 @@ else:
                             revenue[revenuecol] = c2.number_input(f"**Revenue Amount {i+1} ($):**", step=0.01, min_value=0., value=initialamt)
 
                         if dbcol in deductibles:
-                            deductibles[dbcol] += c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdb)
+                            deductibles[dbcol] += c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdbs)
                         else:
-                            deductibles[dbcol] = c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdb)
+                            deductibles[dbcol] = c3.number_input(f"**Total Deductibles Amount {i+1} ($):**", step=0.01, min_value=0., value=initialdbs)
 
                         if taxcol in tax:
                             tax[taxcol] += revenue[revenuecol] * c4.number_input(f"**Tax Percent {i+1} (%):**", step=0.01, min_value=0., value=initialtax) * 0.01
