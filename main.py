@@ -1835,6 +1835,8 @@ else:
 
                 subaccnumex.title("Revenue Accounts")
 
+                hasdbaccs = False
+
                 for revaccname in revaccounts:
 
                     existingsubaccs = []
@@ -1938,6 +1940,8 @@ else:
 
                         if dbaccnum > 0:
 
+                            hasdbaccs = True
+
                             dbselectionex.header(revaccname[:-10]+":")
                             st.subheader("Deductibles:")
 
@@ -1996,7 +2000,10 @@ else:
 
                     if revaccname != selectedrevaccs[-1]:
                         st.subheader("")
-                        
+
+                if not hasdbaccs:
+                    dbselectionex.write("**Select the number of deductible accounts that you want to use in the \"Number of Subaccounts\" menu above.**")
+
             if len(selectedexpaccs) > 0:
 
                 if len(selectedrevaccs) > 0:
