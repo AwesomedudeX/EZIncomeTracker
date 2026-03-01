@@ -1936,9 +1936,9 @@ else:
                                     initialtax = 0.
 
 
-                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
-                            subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
-                            subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**", min_value=0., value=initialtax)
+                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=float(initialsubaccname))
+                            subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=float(initialamt))
+                            subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**", min_value=0., value=float(initialtax))
 
                             budgetdata["Account"].append(revaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Revenue)")

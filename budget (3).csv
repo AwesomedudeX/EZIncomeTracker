@@ -1,0 +1,15 @@
+Account,Subaccount,Amount ($)
+Salary,Total (Revenue),8000.0
+Salary,Total (Tax),2400.0
+Salary,Unnamed Subaccount 2 (Revenue),0.0
+Salary,Unnamed Subaccount 2 (Tax),0.0
+Salary,Unnamed Subaccount 3 (Revenue),0.0
+Salary,Unnamed Subaccount 3 (Tax),0.0
+Salary,Total (Deductible),650.0
+Day Trading,Total (Revenue),182.5
+Day Trading,Total (Tax),18.25
+Gift,Total (Revenue),17.5
+Gift,Total (Tax),0.88
+Groceries,Total (Expense),430.0
+Gas,Total (Expense),262.5
+Travel,Total (Expense),850.0
