@@ -1936,7 +1936,7 @@ else:
                                     initialtax = 0.
 
 
-                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=float(initialsubaccname))
+                            subaccname = c1.text_input(f"**{revaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
                             subaccamt = c2.number_input(f"**{revaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=float(initialamt))
                             subacctax = c3.number_input(f"**{revaccname[:-10]} - Tax Percent {i+1} (%):**", min_value=0., value=float(initialtax))
 
@@ -1988,11 +1988,11 @@ else:
                                 dbaccname = dbselectionex.text_input(f"**Deductible Account {i+1} - {revaccname[:-10]}:**", value=initialdbname)
 
                                 if dbaccname != "":
-                                    dbamt = cols[i%4].number_input(f"**{i+1}. {dbaccname} - {revaccname[:-10]}**", min_value=0., value=initialdbamt)
+                                    dbamt = cols[i%4].number_input(f"**{i+1}. {dbaccname} - {revaccname[:-10]}**", min_value=0., value=float(initialdbamt))
 
                                 else:
                                     dbaccname = f"Deductible Account {i+1}"
-                                    dbamt = cols[i%4].number_input(f"**Deductible Account {i+1} - {revaccname[:-10]}**", min_value=0., value=initialdbamt)
+                                    dbamt = cols[i%4].number_input(f"**Deductible Account {i+1} - {revaccname[:-10]}**", min_value=0., value=float(initialdbamt))
                                     unnameddbaccs += 1
 
                                 budgetdata["Account"].append(revaccname[:-10])
@@ -2075,7 +2075,7 @@ else:
                                     initialamt = 0
 
                             subaccname = c1.text_input(f"**{expaccname[:-10]} - Subaccount {i+1}:**", value=initialsubaccname)
-                            subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=initialamt)
+                            subaccamt = c2.number_input(f"**{expaccname[:-10]} - Amount {i+1} ($):**", min_value=0., value=float(initialamt))
 
                             budgetdata["Account"].append(expaccname[:-10])
                             budgetdata["Subaccount"].append(subaccname+" (Expense)")
