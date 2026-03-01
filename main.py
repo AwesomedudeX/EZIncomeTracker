@@ -6,7 +6,6 @@
 #   with the same conditions/parameters, it will return the cached output instead of rerunning the function.
 # 
 # - All st.columns objects are used to separate page elements into columns; new ones are placed below previously created ones
-# a
 
 # Importing Streamlit; to be used for the web app
 import streamlit as st
@@ -362,11 +361,11 @@ if page == "Home":
 
                     if str(val) in [None, "", "nan"]:
                         validdata = False
-                        invalidmsg += f"- There is a `{col}` value that is empty.\n"
+                        invalidmsg += f"- There is a value in the `{col}` column that is empty/undefined.\n"
 
-                    elif col == "Month No." and str(val) not in [None, "", "nan"] and not isInt(val):
+                    elif col == "Month No." and (not isInt(val) or (isInt(val) and val < 1)):
                         validdata = False
-                        invalidmsg += f"- There is a `Month No.` value that is not a positive integer: {val}.\n"
+                        invalidmsg += f"- There is a `Month No.` value that is not a positive integer: **{val}**.\n"
 
                     if col not in defaultcols[1:3] and not isNum(val):
                         validdata = False
@@ -817,19 +816,24 @@ else:
     # ADD COMMENTS
     elif page == "Your Income Data":
         
-        
+        # If the user does not have any data, prints this message
         if lendata == 0:
             st.subheader("Please add an entry before attempting to view your entries.")
 
-        
+        # Otherwise, displays the page
         else:
+            
+            # Cleans the data before it is displayed
+            st.session_state.userdata = cleanData(st.session_state.userdata)
 
+            # Displays a column selection menu on the sidebar
+            
             showColsExpander = sidebar.expander("**Selected Columns**")
 
             with showColsExpander:
                 showCols = colSelector()
 
-            st.session_state.userdata = cleanData(st.session_state.userdata)
+            # Displays a data interpolation menu for missing entries
 
             interpolationExpander = sidebar.expander("**Interpolate Missing Data**")
 
@@ -837,17 +841,21 @@ else:
 
                 st.write("Interpolate data for months that were missed in the recording process. Choose the month to interpolate, and we'll predict what the values for that month could have been based on your previous and following entry.")
 
+                # Ensures all month values are integers
                 intmonths = list(st.session_state.userdata["Month No."].astype(int))
                 maxval = max(intmonths)
                 missingmonths = []
 
+                # Checks if there are any missing months between the range of Month 1 and the last recorded month
                 for num in range(1, maxval):
                     if num not in intmonths:
                         missingmonths.append(num)
 
+                # If there are no missing months, prints this message
                 if len(missingmonths) == 0:
                     st.success("**You don't have any missing data!**")
 
+                # Otherwise, displays the menu for interpolation
                 else:
 
                     targetmonth = st.selectbox("**Target Month:**", missingmonths)
