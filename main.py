@@ -962,15 +962,17 @@ else:
 
             else:
 
-                startentry = sidebar.number_input("Starting Entry Number", 1, lendata, value=1)-1
-                endentry = sidebar.number_input("Ending Entry Number", startentry, lendata, value=lendata)
+                lendata = len(st.session_state.userdata)
+
+                startentry = sidebar.number_input("Starting Entry Number", min_value=1, max_value=lendata, value=1)
+                endentry = sidebar.number_input("Ending Entry Number", min_value=startentry, max_value=lendata, value=lendata)
                 
                 displaydf = pd.DataFrame()
 
-                displaydf["Entry No."] = [i+1 for i in range(endentry-startentry)]
+                displaydf["Entry No."] = [i for i in range(startentry, endentry+1)]
 
                 for col in showCols:
-                    displaydf[col] = st.session_state.userdata[col].iloc[startentry:endentry]                    
+                    displaydf[col] = list(st.session_state.userdata[col])[startentry-1:endentry]
 
                 st.dataframe(displaydf, use_container_width=True, hide_index=True)
 

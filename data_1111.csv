@@ -1,4 +1,7 @@
-,Month No.,Month,Year,Total Revenue,Total Deductibles,Total Tax,Total Expenses,Net Income,Savings/Loss,Salary (Revenue),Salary (Deductibles),Salary (Tax),groceries (Expense),Gas (Expense),Travel (Expense)
-0,1,January,2026,8000.0,1000.0,2400.0,3750.0,4600.0,850.0,8000.0,1000.0,2400.0,2500.0,250.0,1000.0
-1,2,February,2026,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-2,3,February,2026,0.0,0.0,0.0,362.0,0.0,-362.0,0.0,0.0,0.0,326.0,36.0,0.0
+,Month No.,Month,Year,Total Revenue,Total Deductibles,Total Tax,Total Expenses,Net Income,Savings/Loss,Salary (Revenue),Salary (Deductibles),Salary (Tax),Day Trading (Revenue),Day Trading (Deductibles),Day Trading (Tax),Groceries (Expense),Gas (Expense),Travel (Expense)
+0,1,February,2026,8100.0,1000.0,2410.0,750.0,4690.0,3940.0,8000.0,1000.0,2400.0,100.0,0.0,10.0,500.0,250.0,0.0
+1,2,February,2026,8090.0,1250.0,2409.0,1900.0,4431.0,2531.0,8000.0,1250.0,2400.0,90.0,0.0,9.0,600.0,300.0,1000.0
+2,3,February,2026,8130.0,1000.0,2413.0,600.0,4717.0,4117.0,8000.0,1000.0,2400.0,130.0,0.0,13.0,400.0,200.0,0.0
+3,4,February,2026,8120.0,1000.0,2412.0,850.0,4708.0,3858.0,8000.0,1000.0,2400.0,120.0,0.0,12.0,550.0,300.0,0.0
+4,5,February,2026,8150.0,1000.0,2415.0,700.0,4735.0,4035.0,8000.0,1000.0,2400.0,150.0,0.0,15.0,500.0,200.0,0.0
+5,6,February,2026,8160.0,1000.0,2416.0,1650.0,4744.0,3094.0,8000.0,1000.0,2400.0,160.0,0.0,16.0,400.0,250.0,1000.0
