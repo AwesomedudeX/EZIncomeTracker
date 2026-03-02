@@ -1,10 +1,12 @@
-# ADD COMMENTS
-
 # General Notes:
 # 
 # - All cached data stores outputs based on the inputs of a function; if the function is called multiple times
 #   with the same conditions/parameters, it will return the cached output instead of rerunning the function.
 # 
+# - All st.session_state attributes are not rerun with every user interaction (eg. pressing a button), so they
+#   remain the same after being assigned; all other variables are, so their creation and changes made to them will
+#   be rerun for every user interaction.
+#
 # - All st.columns objects are used to separate page elements into columns; new ones are placed below previously created ones
 
 # Importing Streamlit; to be used for the web app
@@ -215,6 +217,7 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
     ycols = [c for c in data if c not in defaultcols[:3]]
     x = data["Month No."][startentry-1:endentry]
     y = data[ycols].iloc[startentry-1:endentry]
+    st.write(y)
 
     # Creates training and testing datasets to be used with the linear regression prediction model 
     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
@@ -813,7 +816,6 @@ else:
 
             sidebar.success("Entry created successfully.")
 
-    # ADD COMMENTS
     elif page == "Your Income Data":
         
         # If the user does not have any data, prints this message
@@ -858,6 +860,8 @@ else:
                 # Otherwise, displays the menu for interpolation
                 else:
 
+                    # Month selection, and adjacent value information
+                    
                     targetmonth = st.selectbox("**Target Month:**", missingmonths)
 
                     previndex = 0
@@ -866,12 +870,16 @@ else:
                     prevmonth = 1
                     nextmonth = maxval
 
+                    # Creates a dictionary to store the new values, and to store the columns in the data
                     newvals = {}
                     cols = [c for c in st.session_state.userdata.columns]
 
+                    # Assigns the month and year based on the user's choice
                     newvals["Month"] = st.selectbox("**Month**", months, index=monthindex)
                     newvals["Year"] = st.number_input("**Year**", currentyear, step=1)
 
+                    # Loops through all user entries, and checks for adjacent values; calculates the gap between them afterward, and adds the new month number
+                    
                     for i in range(len(st.session_state.userdata)):
 
                         val = int(st.session_state.userdata.iloc[i, 0])
@@ -890,6 +898,7 @@ else:
 
                     newvals["Month No."] = targetmonth
 
+                    # Loops through all the columns (excluding the date-related columns), calculating the interpolated values and adding them to the newvals dictionary
                     for c in range(3, len(cols)):
 
                         if cols[c][-5:] == "(Tax)" or cols[c] == "Total Tax":
@@ -928,10 +937,14 @@ else:
 
                             newval = prevval + ( (nextval - prevval) / totalgap * prevgap )
 
+                        # Rounds the value if necessary before doing so
                         if isNum(str(newval)):
                             newval = round(newval, 2)
 
                         newvals[cols[c]] = newval
+
+                    # Adds the new values to their correct spot in the data; adds it to each column after looping through
+                    # each entry, before continuing to add the remaining values
 
                     data = {}
 
@@ -946,6 +959,8 @@ else:
                             if i < lendata-1 and st.session_state.userdata["Month No."][i] < newvals["Month No."] and st.session_state.userdata["Month No."][i+1] > newvals["Month No."]:
                                 data[col].append(newvals[col])
                     
+                    # Adds the saves the interpolated data, and assigns it to st.session_state.userdata,
+                    # before cleaning it, updating lendata and printing a message
                     if st.button("Add Interpolated Data"):
 
                         saveEntries(toDF(data), st.session_state.userid)
@@ -957,16 +972,22 @@ else:
 
                         st.success("Interpolated data added successfully. You may have to refresh the page for your data to update.")
 
+            # If no columns are selected, asks the user to select one
             if showCols == []:
                 st.subheader("Please select a column to view.")
 
+            # Otherwise, displays the data
             else:
+
+                # Updates lendata with the latest length of st.session_state.userdata, and asks the user for the starting and ending entry for viewing
 
                 lendata = len(st.session_state.userdata)
 
                 startentry = sidebar.number_input("Starting Entry Number", min_value=1, max_value=lendata, value=1)
                 endentry = sidebar.number_input("Ending Entry Number", min_value=startentry, max_value=lendata, value=lendata)
                 
+                # Adds all data to displaydf, which is created as a DataFrame, and displays it
+
                 displaydf = pd.DataFrame()
 
                 displaydf["Entry No."] = [i for i in range(startentry, endentry+1)]
@@ -976,6 +997,7 @@ else:
 
                 st.dataframe(displaydf, use_container_width=True, hide_index=True)
 
+                # Creates an expander with a button inside, which clears and saves the cleared user data
                 if st.expander("**:red[DANGER ZONE]**").button("**:red[Clear ALL Entries]**", use_container_width=True):
                     
                     newdata = {}
@@ -992,14 +1014,18 @@ else:
     # ADD COMMENTS
     elif page == "Edit Your Entries":
 
+        # Prints a note for the user
         st.write(":grey[**Note:** You will need to refresh the page or perform an action for the screen to update with your modified data.]")
         st.write("---")
 
+        # Creates a list to store all the individual accounts in the user's data
         accountcols = [col for col in st.session_state.userdata.columns if col not in defaultcols]
 
+        # If the user does not have any entries, or they do not have any accounts, prints a message to add an account
         if lendata == 0 or len(accountcols) == 0:
             st.subheader("Please add an entry with at least one account before attempting to edit your entries.")
 
+        # Otherwise, runs the entry editor
         else:
 
             st.header("**Current Data**")
@@ -1572,7 +1598,7 @@ else:
                     numcols = st.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
 
                     startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)
-                    endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry, max_value=lendata, value=lendata)
+                    endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry+1, max_value=lendata, value=lendata)
 
                 plt.xlabel("Month No.")
                 plt.ylabel(f"Amount ($)")
@@ -1580,8 +1606,8 @@ else:
                 selectedcols = []
                 predmonths = 0
 
-                x = st.session_state.userdata["Month No."][startentry-1:endentry]
-                y = st.session_state.userdata[ycols].iloc[startentry-1:endentry]
+                x = st.session_state.userdata["Month No."].loc[startentry-1:endentry]
+                y = st.session_state.userdata[ycols].loc[startentry-1:endentry]
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
@@ -1589,7 +1615,7 @@ else:
                 elif predictdata:
                     
                     predmonthamount = graphsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
-                    predmonths = [i+1+endentry for i in range(predmonthamount)]
+                    predmonths = [i+endentry+1 for i in range(predmonthamount)]
 
                     preddict = predict(st.session_state.userdata, predmonths, startentry, endentry)
                     preddf = toDF(preddict)
@@ -1637,7 +1663,7 @@ else:
                 for i in range(numcols):
 
                     selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in ycols if col not in selectedcols and col not in defaultcols[:3]])
-                    ycol = y[selectedcol].iloc[startentry-1:endentry]
+                    ycol = y[selectedcol].loc[startentry-1:endentry]
 
                     selectedcols.append(selectedcol)
 
@@ -1674,7 +1700,7 @@ else:
                     predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
                     startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
                     endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
-                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
+                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].loc[-1]+1, step=1)
 
                     preddict = predict(st.session_state.userdata, [predmonth], startentry, endentry)
                     preddf = toDF(preddict)
