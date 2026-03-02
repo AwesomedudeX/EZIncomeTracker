@@ -1593,12 +1593,13 @@ else:
                     else:
                         plt.style.use("default")
 
+                    # Primary Graph Settings
                     gtype = st.selectbox("**Graph Type:**", gtypes)
                     numcols = st.number_input("**Number of Columns to Plot:**", min_value=1, max_value=maxcols)
-
                     startentry = st.number_input("**Starting Entry to Plot:**", min_value=1, max_value=lendata-1)
                     endentry = st.number_input("**Ending Entry to Plot:**", min_value=startentry+1, max_value=lendata, value=lendata)
 
+                # Adds labels to each axis
                 plt.xlabel("Month No.")
                 plt.ylabel(f"Amount ($)")
 
@@ -1658,6 +1659,7 @@ else:
 
                 plotcols = sidebar.expander("**Columns to :green[Plot]**")
 
+                # Configures the graph
                 fig, ax = plt.subplots()
                 ax.set_xticks(np.arange(0, np.max(x)+1, 1))
                 
@@ -1818,10 +1820,12 @@ else:
             else:
                 suggestvalues = sidebar.checkbox("**Suggest Budget Values**", value=True)
 
+            # Initializing lists/dictionaries to store values for these account types
             revaccounts = []
             dbaccounts = {}
             expaccounts = []
 
+            # Adds the existing values to their respective lists/dictionaries
             for col in st.session_state.userdata.columns:
 
                 if "(Revenue)" == col[-9:]:
