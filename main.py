@@ -1926,6 +1926,9 @@ else:
                         subaccnumex.write(f"")
                         subaccnumex.write(f"## {revaccname[:-10]}")
 
+                        if initialsubaccnum < 1:
+                            initialsubaccnum = 1
+
                         subaccnum = subaccnumex.number_input(f"**{revaccname[:-10]}**:", step=1, min_value=1, value=initialsubaccnum)
                         dbaccnum = subaccnumex.number_input(f"**{revaccname[:-10]} (Deductibles)**", min_value=len(existingdbs.keys()), max_value=20, step=1)
                         
@@ -2076,6 +2079,8 @@ else:
                                     existingsubaccs.append(expaccname[:-10])
                                     existingsubamts.append(st.session_state.budgetdata["Amount ($)"][i])
 
+                        if initialsubaccnum < 1:
+                            initialsubaccnum = 1
 
                         subaccnum = subaccnumex.number_input("**"+expaccname[:-10]+"**:", step=1, min_value=1, value=initialsubaccnum)
 
