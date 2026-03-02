@@ -1587,6 +1587,7 @@ else:
                     darkbg = st.checkbox("Graph Dark Mode", value=True)
                     predictdata = st.checkbox("Graph Predicted Data", value=False)
 
+                    # Sets the theme to dark mode if darkbg is true; otherwise, resets it to the default theme
                     if darkbg:
                         plt.style.use("dark_background")
                     else:
@@ -1610,6 +1611,7 @@ else:
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
+                # Section to predict data and add it to the data to be plotted
                 elif predictdata:
                     
                     predmonthamount = graphsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
@@ -1657,7 +1659,8 @@ else:
 
                 fig, ax = plt.subplots()
                 ax.set_xticks(np.arange(0, np.max(x)+1, 1))
-
+                
+                # Loop to display graphs for all selected columns, based on the graph type
                 for i in range(numcols):
 
                     selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in ycols if col not in selectedcols and col not in defaultcols[:3]])
@@ -1678,8 +1681,10 @@ else:
                         ax.set_xticks(np.arange(0, np.max(x), 1))
                         sn.barplot(x=x, y=ycol, label=selectedcol)
 
+                # Displays a legend for the columns that were plotted
                 plt.legend()
 
+                # Plots the data on a graph, using a horizontal layout if the c2 variable has been assigned an st.columns object or a vertical layout if it has not
                 if c2:
                     c2.header("Graph Display")
                     c2.pyplot(fig)
