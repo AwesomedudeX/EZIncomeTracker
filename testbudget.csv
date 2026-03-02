@@ -1,0 +1,11 @@
+Account,Subaccount,Amount ($)
+Salary,Total (Revenue),8000.0
+Salary,Total (Tax),2400.0
+Salary,Unnamed Subaccount 2 (Revenue),0.0
+Salary,Unnamed Subaccount 2 (Tax),0.0
+Salary,Unnamed Subaccount 3 (Revenue),0.0
+Salary,Unnamed Subaccount 3 (Tax),0.0
+Salary,CPP (Deductible),1000.0
+Salary,EI (Deductible),500.0
+Groceries,Total (Expense),521.43
+Gas,Total (Expense),217.14
