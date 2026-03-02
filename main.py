@@ -1606,8 +1606,10 @@ else:
                 selectedcols = []
                 predmonths = 0
 
-                x = st.session_state.userdata["Month No."].loc[startentry-1:endentry]
-                y = st.session_state.userdata[ycols].loc[startentry-1:endentry]
+                x = st.session_state.userdata["Month No."].loc[startentry-1:endentry-1]
+                y = st.session_state.userdata[ycols].loc[startentry-1:endentry-1]
+
+                st.write(y)
 
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
@@ -1663,7 +1665,7 @@ else:
                 for i in range(numcols):
 
                     selectedcol = plotcols.selectbox(f"**Column {i+1}:**", [col for col in ycols if col not in selectedcols and col not in defaultcols[:3]])
-                    ycol = y[selectedcol].loc[startentry-1:endentry]
+                    ycol = y[selectedcol].loc[startentry-1:endentry-1]
 
                     selectedcols.append(selectedcol)
 
@@ -1700,7 +1702,7 @@ else:
                     predsettings = sidebar.expander("**Prediction Settings:**", expanded=True)
                     startentry = predsettings.number_input("**Starting Entry to Use For Prediction:**", min_value=1, max_value=len(displaydata["Entry No."])-1, step=1)
                     endentry = predsettings.number_input("**Ending Entry to Use For Prediction:**", min_value=startentry+1, max_value=len(displaydata["Entry No."]), value=len(displaydata["Entry No."]), step=1)
-                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].loc[-1]+1, step=1)
+                    predmonth = predsettings.number_input("**Month to Predict:**", min_value=st.session_state.userdata["Month No."].iloc[-1]+1, step=1)
 
                     preddict = predict(st.session_state.userdata, [predmonth], startentry, endentry)
                     preddf = toDF(preddict)
