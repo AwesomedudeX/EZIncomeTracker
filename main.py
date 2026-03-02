@@ -1134,6 +1134,7 @@ else:
                 existingdbs = []
                 existingtaxes = []
 
+                # Loops through all the e
                 for col in st.session_state.userdata.columns:
 
                     if "(Revenue)" == col[-9:]:
