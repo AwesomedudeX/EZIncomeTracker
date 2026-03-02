@@ -1860,7 +1860,7 @@ else:
             budgetdata["Amount ($)"] = []
 
             if suggestvalues:
-                recommendedvals = predict(st.session_state.userdata, [max(st.session_state.userdata["Month No."])+1], 1, len(st.session_state.userdata))
+                recommendedvals = predict(st.session_state.userdata, [monthno], 1, len(st.session_state.userdata))
 
             if len(selectedrevaccs) > 0:
 
