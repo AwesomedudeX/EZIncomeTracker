@@ -1608,10 +1608,11 @@ else:
                 x = st.session_state.userdata["Month No."].loc[startentry-1:endentry-1]
                 y = st.session_state.userdata[ycols].loc[startentry-1:endentry-1]
 
+                # Prints a message if the user tries to predict data without selecting any columns
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
-                # Section to predict data and add it to the data to be plotted
+                # Otherwise, predicts data and adds it to the data to be plotted
                 elif predictdata:
                     
                     predmonthamount = graphsettings.number_input("**Number of Months to Predict:**", min_value=1, step=1, max_value=12)
