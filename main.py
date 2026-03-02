@@ -1609,8 +1609,6 @@ else:
                 x = st.session_state.userdata["Month No."].loc[startentry-1:endentry-1]
                 y = st.session_state.userdata[ycols].loc[startentry-1:endentry-1]
 
-                st.write(y)
-
                 if predictdata and len(ycols) == 0:
                     st.subheader("Please add accounts to your entries to predict account data.")
 
