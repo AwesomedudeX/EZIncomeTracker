@@ -217,7 +217,6 @@ def predict(data: dict, predmonths: list, startentry: int, endentry: int, return
     ycols = [c for c in data if c not in defaultcols[:3]]
     x = data["Month No."][startentry-1:endentry]
     y = data[ycols].iloc[startentry-1:endentry]
-    st.write(y)
 
     # Creates training and testing datasets to be used with the linear regression prediction model 
     xtrain, xtest, ytrain, ytest = tts(x, y, test_size=0.2, random_state=40)
