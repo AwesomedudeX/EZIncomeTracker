@@ -1010,7 +1010,6 @@ else:
                     st.session_state.userdata = pd.read_csv(f"data_{st.session_state.userid}.csv")
                     st.session_state.userdata = cleanData(st.session_state.userdata)
 
-    # ADD COMMENTS
     elif page == "Edit Your Entries":
 
         # Prints a note for the user
@@ -1520,7 +1519,6 @@ else:
                     except:
                         st.error(f"\nERROR: Entry could not be saved for User {st.session_state.userid}.")
 
-    # ADD COMMENTS
     elif page == "Analyze Your Data":
 
         st.write("Here, you can generate **graphs**, make **predictions**, view **trends**, and look at your data **as a whole**. Before you begin, it's **highly recommended** that you ensure there is **no missing data**, or any missing data has been **interpolated** on the **Your Income Data** page. To get started, just select what you want to do **below**:")
@@ -1752,7 +1750,6 @@ else:
         else:
             st.subheader("Please enter more than one entry to analyze your data.")
 
-    # ADD COMMENTS
     elif page == "Plan Your Budget":
 
         st.write("Here, you can create your **own** budget plan for **each month**. To get started, start entering values, or just **upload** your current budget file to pick up where you left off. It is highly recommended to include **all** fixed-value accounts (accounts with values remain unchanged between months) - as well as any variable accounts (accounts with changing values) - in your plan for the most **accurate** budget planning.")
